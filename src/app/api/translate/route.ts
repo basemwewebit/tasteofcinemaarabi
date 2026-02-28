@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { translateArticle } from '@/lib/ai/translate';
-import { saveArticleMetadata } from '@/lib/db/articles';
+import { getArticleBySlug, getArticleBySourceUrl, saveArticleMetadata } from '@/lib/db/articles';
 import { saveMarkdownFile } from '@/lib/content/mdx';
+import { ensureUniqueSlug } from '@/lib/content/slugs';
 import { TranslateRequest } from '@/types/api';
 
 export async function POST(req: Request) {
@@ -15,8 +16,29 @@ export async function POST(req: Request) {
             );
         }
 
+        const normalizedSourceUrl = normalizeUrl(body.url);
+        if (!normalizedSourceUrl) {
+            return NextResponse.json(
+                { success: false, error: 'Invalid URL' },
+                { status: 400 }
+            );
+        }
+
+        const existing = getArticleBySourceUrl(normalizedSourceUrl);
+        if (existing) {
+            return NextResponse.json({
+                success: true,
+                data: {
+                    articleId: existing.id,
+                    slug: existing.slug,
+                    title_ar: existing.title_ar,
+                    skipped: true
+                }
+            });
+        }
+
         // 1. Send to OpenAI for translation
-        const translationResult = await translateArticle(body);
+        const translationResult = await translateArticle({ ...body, url: normalizedSourceUrl });
 
         if (!translationResult.success || !translationResult.data) {
             return NextResponse.json(translationResult, { status: 500 });
@@ -29,21 +51,22 @@ export async function POST(req: Request) {
             content_mdx,
             category,
             tags,
-            slug
+            slug: rawSlug
         } = translationResult.data;
+        const uniqueSlug = ensureUniqueSlug(rawSlug || title_en || body.title, (candidate) => Boolean(getArticleBySlug(candidate)));
 
         // 2. Save the MDX content
-        const mdxPath = await saveMarkdownFile(slug, content_mdx);
+        const mdxPath = await saveMarkdownFile(uniqueSlug, content_mdx);
 
         // 3. Save the metadata to SQLite
         const articleId = saveArticleMetadata({
-            slug,
+            slug: uniqueSlug,
             title_ar,
             title_en,
             excerpt_ar,
             category,
             tags: JSON.stringify(tags),
-            source_url: body.url,
+            source_url: normalizedSourceUrl,
             markdown_path: mdxPath,
             author: 'مذاق السينما',
             status: 'draft'
@@ -53,7 +76,7 @@ export async function POST(req: Request) {
             success: true,
             data: {
                 articleId,
-                slug,
+                slug: uniqueSlug,
                 title_ar
             }
         });
@@ -63,5 +86,24 @@ export async function POST(req: Request) {
             { success: false, error: err instanceof Error ? err.message : 'Server error' },
             { status: 500 }
         );
+    }
+}
+
+function normalizeUrl(raw: string): string | null {
+    if (!raw?.trim()) {
+        return null;
+    }
+
+    try {
+        const parsed = new URL(raw.trim());
+        if (!['http:', 'https:'].includes(parsed.protocol)) {
+            return null;
+        }
+
+        parsed.hash = '';
+        parsed.pathname = parsed.pathname.replace(/\/+$/, '') || '/';
+        return parsed.toString();
+    } catch {
+        return null;
     }
 }

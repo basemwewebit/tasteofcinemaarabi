@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { BatchImportRequest } from '@/types/api';
 import { createBatch, getBatches, updateBatchStatus, incrementBatchSuccess, incrementBatchFail } from '@/lib/db/batches';
+import { getArticleBySlug, getArticleBySourceUrl, saveArticleMetadata } from '@/lib/db/articles';
+import { saveMarkdownFile } from '@/lib/content/mdx';
+import { scrapeArticle } from '@/lib/scraper/tasteofcinema';
+import { translateArticle } from '@/lib/ai/translate';
+import { ensureUniqueSlug } from '@/lib/content/slugs';
 
 export async function GET() {
     try {
@@ -14,16 +19,17 @@ export async function GET() {
 export async function POST(req: Request) {
     try {
         const body = (await req.json()) as BatchImportRequest;
+        const normalizedUrls = normalizeUrls(body.urls ?? []);
 
-        if (!body.urls || !Array.isArray(body.urls) || body.urls.length === 0) {
+        if (!normalizedUrls.length) {
             return NextResponse.json({ success: false, error: 'Valid URLs array required' }, { status: 400 });
         }
 
-        const firstUrl = body.urls[0];
-        const batchId = createBatch(firstUrl, body.urls.length);
+        const firstUrl = normalizedUrls[0];
+        const batchId = createBatch(firstUrl, normalizedUrls.length);
 
         // Fire and forget (Start processing background task)
-        processBatch(batchId, body.urls).catch(e => console.error('Batch processing error:', e));
+        processBatch(batchId, normalizedUrls).catch(e => console.error('Batch processing error:', e));
 
         return NextResponse.json({ success: true, batchId, message: 'Batch processing started' });
     } catch (err: unknown) {
@@ -35,12 +41,19 @@ export async function POST(req: Request) {
 async function processBatch(batchId: number, urls: string[]) {
     updateBatchStatus(batchId, 'processing');
 
+    let successCount = 0;
+    let failCount = 0;
+
     for (const url of urls) {
         try {
+            const existing = getArticleBySourceUrl(url);
+            if (existing) {
+                incrementBatchSuccess(batchId);
+                successCount += 1;
+                continue;
+            }
+
             // 1. Scrape
-            // For local API absolute URL, we must either recreate the fetch against our own endpoint or extract logic.
-            // Better to extract logic and call it directly here rather than doing a HTTP fetch to next server
-            const { scrapeArticle } = await import('@/lib/scraper/tasteofcinema');
             const scrapeResult = await scrapeArticle(url);
 
             if (!scrapeResult.success || !scrapeResult.data) {
@@ -48,10 +61,6 @@ async function processBatch(batchId: number, urls: string[]) {
             }
 
             // 2. Translate and Save Logic (same as translate API, abstracting it here)
-            const { translateArticle } = await import('@/lib/ai/translate');
-            const { saveArticleMetadata } = await import('@/lib/db/articles');
-            const { saveMarkdownFile } = await import('@/lib/content/mdx');
-
             const translationResult = await translateArticle({
                 url,
                 title: scrapeResult.data.title,
@@ -59,25 +68,71 @@ async function processBatch(batchId: number, urls: string[]) {
             });
 
             if (!translationResult.success || !translationResult.data) {
-                throw new Error(translationResult.error || 'Translation failed');
+                throw new Error(
+                    [translationResult.error, translationResult.details].filter(Boolean).join(': ') || 'Translation failed'
+                );
             }
 
-            const { slug, title_ar, title_en, excerpt_ar, content_mdx, category, tags } = translationResult.data;
-            const mdxPath = await saveMarkdownFile(slug, content_mdx);
+            const { title_ar, title_en, excerpt_ar, content_mdx, category, tags } = translationResult.data;
+            const baseSlug = translationResult.data.slug || title_en || scrapeResult.data.title || 'article';
+            const uniqueSlug = ensureUniqueSlug(baseSlug, (candidate) => Boolean(getArticleBySlug(candidate)));
+            const mdxPath = await saveMarkdownFile(uniqueSlug, content_mdx);
 
             saveArticleMetadata({
-                slug, title_ar, title_en, excerpt_ar, category,
+                slug: uniqueSlug, title_ar, title_en, excerpt_ar, category,
                 tags: JSON.stringify(tags),
                 source_url: url, markdown_path: mdxPath,
                 author: 'مذاق السينما', status: 'draft'
             });
 
             incrementBatchSuccess(batchId);
+            successCount += 1;
         } catch (err) {
             console.error(`Batch ${batchId} URL ${url} failed to process:`, err);
             incrementBatchFail(batchId);
+            failCount += 1;
         }
     }
 
-    updateBatchStatus(batchId, 'completed');
+    updateBatchStatus(batchId, successCount === 0 && failCount > 0 ? 'failed' : 'completed');
+}
+
+function normalizeUrls(urls: string[]): string[] {
+    if (!Array.isArray(urls)) {
+        return [];
+    }
+
+    const seen = new Set<string>();
+    const normalized: string[] = [];
+
+    for (const raw of urls) {
+        const url = normalizeUrl(raw);
+        if (!url || seen.has(url)) {
+            continue;
+        }
+
+        seen.add(url);
+        normalized.push(url);
+    }
+
+    return normalized;
+}
+
+function normalizeUrl(raw: string): string | null {
+    if (!raw?.trim()) {
+        return null;
+    }
+
+    try {
+        const parsed = new URL(raw.trim());
+        if (!['http:', 'https:'].includes(parsed.protocol)) {
+            return null;
+        }
+
+        parsed.hash = '';
+        parsed.pathname = parsed.pathname.replace(/\/+$/, '') || '/';
+        return parsed.toString();
+    } catch {
+        return null;
+    }
 }

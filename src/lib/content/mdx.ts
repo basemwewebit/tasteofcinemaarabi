@@ -4,6 +4,40 @@ import { existsSync, mkdirSync } from 'fs';
 import path from 'path';
 
 const CONTENT_DIR = path.join(process.cwd(), 'content');
+const VOID_TAGS = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'];
+
+function sanitizeForMdx(content: string): string {
+    let normalized = content;
+
+    // React expects style as object; string inline styles in imported HTML break rendering.
+    normalized = normalized.replace(/\sstyle=(["']).*?\1/gi, '');
+
+    // Normalize common HTML attributes to React/JSX prop casing.
+    normalized = normalized
+        .replace(/\sclass=/gi, ' className=')
+        .replace(/\sfetchpriority=/gi, ' fetchPriority=')
+        .replace(/\ssrcset=/gi, ' srcSet=')
+        .replace(/\stabindex=/gi, ' tabIndex=')
+        .replace(/\sreadonly=/gi, ' readOnly=')
+        .replace(/\smaxlength=/gi, ' maxLength=')
+        .replace(/\sminlength=/gi, ' minLength=')
+        .replace(/\scolspan=/gi, ' colSpan=')
+        .replace(/\srowspan=/gi, ' rowSpan=')
+        .replace(/\sfor=/gi, ' htmlFor=');
+
+    // MDX parses HTML-like tags as JSX; void tags must be self-closing.
+    for (const tag of VOID_TAGS) {
+        const pattern = new RegExp(`<${tag}(\\s[^>]*?)?>`, 'gi');
+        normalized = normalized.replace(pattern, (match, attrs = '') => {
+            if (/\/\s*>$/.test(match)) {
+                return match;
+            }
+            return `<${tag}${attrs} />`;
+        });
+    }
+
+    return normalized;
+}
 
 export async function saveMarkdownFile(slug: string, mdxContent: string): Promise<string> {
     if (!existsSync(CONTENT_DIR)) {
@@ -11,7 +45,8 @@ export async function saveMarkdownFile(slug: string, mdxContent: string): Promis
     }
 
     const filePath = path.join(CONTENT_DIR, `${slug}.mdx`);
-    await fs.writeFile(filePath, mdxContent, 'utf-8');
+    const sanitized = sanitizeForMdx(mdxContent);
+    await fs.writeFile(filePath, sanitized, 'utf-8');
 
     return filePath;
 }
@@ -20,7 +55,14 @@ export async function readMarkdownFile(slug: string): Promise<string | null> {
     try {
         const filePath = path.join(CONTENT_DIR, `${slug}.mdx`);
         const content = await fs.readFile(filePath, 'utf-8');
-        return content;
+        const sanitized = sanitizeForMdx(content);
+
+        // Self-heal old files produced before sanitization.
+        if (sanitized !== content) {
+            await fs.writeFile(filePath, sanitized, 'utf-8');
+        }
+
+        return sanitized;
     } catch (error) {
         console.error(`Error reading markdown file for slug ${slug}:`, error);
         return null;

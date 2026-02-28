@@ -16,6 +16,51 @@ interface Batch {
     completed_at: string | null;
 }
 
+const STATUS_LABELS: Record<string, string> = {
+    pending: 'قيد الانتظار',
+    processing: 'قيد المعالجة',
+    completed: 'مكتملة',
+    failed: 'فشلت',
+};
+
+function parseSqliteDate(value: string): Date | null {
+    const sqliteMatch = value.match(
+        /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/
+    );
+
+    if (sqliteMatch) {
+        const [, y, m, d, hh, mm, ss] = sqliteMatch;
+        return new Date(
+            Number(y),
+            Number(m) - 1,
+            Number(d),
+            Number(hh),
+            Number(mm),
+            Number(ss)
+        );
+    }
+
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatBatchDate(value: string): string {
+    const parsed = parseSqliteDate(value);
+    if (!parsed) {
+        return value;
+    }
+
+    return new Intl.DateTimeFormat('ar-SA', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+    }).format(parsed);
+}
+
 export default function AdminImportPage() {
     const [urlsInput, setUrlsInput] = useState('');
     const [batches, setBatches] = useState<Batch[]>([]);
@@ -114,7 +159,7 @@ export default function AdminImportPage() {
                                     batch.status === 'failed' ? 'danger' :
                                         batch.status === 'processing' ? 'gold' : 'default'
                             }>
-                                {batch.status}
+                                {STATUS_LABELS[batch.status] ?? batch.status}
                             </Badge>
                         </div>
 
@@ -126,10 +171,13 @@ export default function AdminImportPage() {
                             <span style={{ color: 'var(--color-danger)' }}>الفاشلة: {batch.failed}</span>
                         </div>
 
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', direction: 'ltr', textAlign: 'left' }}>
-                            Base URL: {batch.source_url}
-                            <br />
-                            Started: {new Date(batch.started_at).toLocaleString('ar-AR')}
+                        <div className={styles.batchMeta}>
+                            <div className={styles.metaUrl}>
+                                Base URL: {batch.source_url}
+                            </div>
+                            <div className={styles.metaDate} dir="rtl">
+                                بدأ في: {formatBatchDate(batch.started_at)}
+                            </div>
                         </div>
                     </div>
                 ))}
