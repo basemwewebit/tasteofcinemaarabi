@@ -8,6 +8,7 @@ import { translateArticle } from '../ai/translate';
 import { saveMarkdownFile } from '../content/mdx';
 import { ensureUniqueSlug } from '../content/slugs';
 import { formatSqliteDate } from '../db/index';
+
 import fs from 'fs';
 import path from 'path';
 import { ScrapeResponse } from '@/types/api';
@@ -56,9 +57,8 @@ function localJsonToScrapeData(json: LocalArticleJSON): NonNullable<ScrapeRespon
  * Default location: <repo-root>/scraped/articles/<slug>.json
  */
 function resolveLocalJsonPath(slug: string): string {
-    // Repo root is 2 levels up from src/lib/scraper/
-    const repoRoot = path.resolve(__dirname, '../../../../');
-    return path.join(repoRoot, 'scraped', 'articles', `${slug}.json`);
+    // process.cwd() is always the repo root in Next.js (both dev and build)
+    return path.join(process.cwd(), 'scraped', 'articles', `${slug}.json`);
 }
 
 /**
@@ -197,9 +197,9 @@ export async function runScrapePipeline(jobId: number, targetUrl: string): Promi
         }
 
         const { title_ar, title_en, excerpt_ar, content_mdx, category, tags } = translationResult.data;
+
         const mdxPath = await saveMarkdownFile(uniqueSlug, content_mdx);
 
-        // Update article with translated data
         upsertArticle({
             slug: uniqueSlug,
             title_ar,
