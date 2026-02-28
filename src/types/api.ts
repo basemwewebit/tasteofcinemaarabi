@@ -12,6 +12,7 @@ export interface ScrapeResponse {
         author: string;
         url: string;
         featuredImage?: string;   // Absolute URL to article thumbnail
+        inlineImages?: string[];
         movieTitles?: string[];   // Extracted movie title strings
     };
     error?: string;

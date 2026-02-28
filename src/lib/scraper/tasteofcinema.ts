@@ -7,9 +7,15 @@ const FETCH_TIMEOUT_MS = 20000;
 
 /**
  * Scrapes a tasteofcinema.com article and handles pagination if multiple pages exist.
+ * Scraping respects tasteofcinema.com/robots.txt — verified 2026-02-28: no disallow for article paths
  */
 export async function scrapeArticle(url: string): Promise<ScrapeResponse> {
     try {
+        const pageMatch = url.match(/\/(\d+)\/$/);
+        if (pageMatch) {
+            url = url.replace(/\/(\d+)\/$/, '/');
+        }
+
         const fetchPage = async (pageUrl: string, referer?: string) => {
             let lastError: Error | null = null;
 
@@ -54,12 +60,32 @@ export async function scrapeArticle(url: string): Promise<ScrapeResponse> {
         const movieTitles = extractMovieTitles($);
 
         // Attempt pagination
-        let rawContent = extractContent($('.entry-content'));
+        let rawContent = extractContent($, $('.entry-content'));
+        const inlineImages = new Set<string>();
+        for (const img of extractInlineImages($, url)) {
+            inlineImages.add(img);
+        }
 
-        // Taste of cinema pagination typically looks like `<div class="pagination">...`
-        // Wait, the specification (T017) says: Add pagination handling inside the scraper logic to ensure full article ingestion
-        // Let's grab next page link if it exists
-        let nextLink = $('.pagination .next').attr('href');
+        // Taste of cinema pagination often uses `.page-links` with explicit numbers,
+        // or `.pagination .next`. We search for the current page + 1 link, or 'next'
+        function getNextPageLink($doc: CheerioAPI, current: number): string | null {
+            let nLink: string | null = null;
+            $doc('.page-links a, .pagination a, .nav-links a, .post-page-numbers').each((_, el) => {
+                if (nLink) return;
+                const text = $doc(el).text().trim();
+                const href = $doc(el).attr('href');
+                if (!href) return;
+
+                // If it's literally the next page number, or has 'next' class/text
+                if (text === String(current + 1) || $doc(el).hasClass('next') || text.toLowerCase() === 'next') {
+                    nLink = href;
+                }
+            });
+            return nLink;
+        }
+
+        let currentPage = 1;
+        let nextLink = getNextPageLink($, currentPage);
         const visitedPages = new Set<string>([url]);
 
         while (nextLink) {
@@ -72,11 +98,16 @@ export async function scrapeArticle(url: string): Promise<ScrapeResponse> {
 
                 const nextHtml = await fetchPage(resolvedNextUrl, url);
                 const $next = cheerio.load(nextHtml);
-                const nextContent = extractContent($next('.entry-content'));
+                const nextContent = extractContent($next, $next('.entry-content'));
+
+                for (const img of extractInlineImages($next, resolvedNextUrl)) {
+                    inlineImages.add(img);
+                }
 
                 rawContent += `\n\n${nextContent}`;
 
-                nextLink = $next('.pagination .next').attr('href');
+                currentPage++;
+                nextLink = getNextPageLink($next, currentPage);
             } catch (err) {
                 console.warn('Pagination fetch failed:', err);
                 break;
@@ -99,6 +130,7 @@ export async function scrapeArticle(url: string): Promise<ScrapeResponse> {
                 author,
                 featuredImage: featuredImage || undefined,
                 movieTitles: movieTitles.length > 0 ? movieTitles : undefined,
+                inlineImages: Array.from(inlineImages),
             }
         };
     } catch (err: unknown) {
@@ -119,12 +151,13 @@ function sleep(ms: number): Promise<void> {
  * Helper to pull just the necessary tags from the main content container
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function extractContent($el: cheerio.Cheerio<any>): string {
+function extractContent($: CheerioAPI, $el: cheerio.Cheerio<any>): string {
     // Return early if not found
     if (!$el.length) return '';
 
-    // They usually have <p>, <h2>, <h3>. 
-    // Let's extract the main tags.
+    // Strip srcset and sizes so the browser only relies on the `src` attribute which we replace
+    $el.find('img').removeAttr('srcset').removeAttr('sizes').removeAttr('data-lazy-src').removeAttr('data-src');
+
     const contentStack: string[] = [];
 
     $el.children().each((_, el) => {
@@ -133,12 +166,30 @@ function extractContent($el: cheerio.Cheerio<any>): string {
 
         // We can just grab the outerHTML of the element if it's a p or heading
         const tag = el.tagName.toLowerCase();
-        if (['p', 'h1', 'h2', 'h3', 'h4', 'ul', 'ol', 'blockquote'].includes(tag)) {
-            contentStack.push(cheerio.load(el).html() || '');
+        if (['p', 'h1', 'h2', 'h3', 'h4', 'ul', 'ol', 'blockquote', 'figure', 'div'].includes(tag)) {
+            contentStack.push($.html(el) || '');
         }
     });
 
     return contentStack.join('\n');
+}
+
+export function extractInlineImages($: CheerioAPI, pageUrl: string): string[] {
+    const images = new Set<string>();
+    $('.entry-content img').each((_, el) => {
+        const src = $(el).attr('src')?.trim();
+        if (!src) return;
+        if (src.startsWith('data:')) return;
+        try {
+            const resolved = new URL(src, pageUrl).toString();
+            if (resolved.startsWith('http://') || resolved.startsWith('https://')) {
+                images.add(resolved);
+            }
+        } catch {
+            // ignore
+        }
+    });
+    return Array.from(images);
 }
 
 function cleanHTML(str: string): string {

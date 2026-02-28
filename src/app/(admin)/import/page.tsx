@@ -5,15 +5,15 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import styles from './import.module.css';
 
-interface Batch {
+interface Job {
     id: number;
-    source_url: string;
-    total_articles: number;
-    translated: number;
-    failed: number;
+    targetUrl: string;
     status: string;
-    started_at: string;
-    completed_at: string | null;
+    pagesFound: number;
+    imagesFound: number;
+    imagesSaved: number;
+    startedAt: string;
+    completedAt: string | null;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -44,7 +44,8 @@ function parseSqliteDate(value: string): Date | null {
     return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-function formatBatchDate(value: string): string {
+function formatJobDate(value: string | null): string {
+    if (!value) return 'قيد الانتظار';
     const parsed = parseSqliteDate(value);
     if (!parsed) {
         return value;
@@ -63,16 +64,30 @@ function formatBatchDate(value: string): string {
 
 export default function AdminImportPage() {
     const [urlsInput, setUrlsInput] = useState('');
-    const [batches, setBatches] = useState<Batch[]>([]);
+    const [scrapeDelay, setScrapeDelay] = useState<number>(2);
+    const [savingSettings, setSavingSettings] = useState(false);
+    const [jobs, setJobs] = useState<Job[]>([]);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const fetchBatches = async () => {
+    const fetchSettings = async () => {
         try {
-            const res = await fetch('/api/import-batch');
+            const res = await fetch('/api/settings');
             const data = await res.json();
-            if (data.success) {
-                setBatches(data.data);
+            if (data.scrape_delay_seconds !== undefined) {
+                setScrapeDelay(data.scrape_delay_seconds);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const fetchJobs = async () => {
+        try {
+            const res = await fetch('/api/scrape?limit=20&offset=0');
+            const data = await res.json();
+            if (data.success && data.jobs) {
+                setJobs(data.jobs);
             }
         } catch (err) {
             console.error(err);
@@ -80,10 +95,26 @@ export default function AdminImportPage() {
     };
 
     useEffect(() => {
-        fetchBatches();
-        const interval = setInterval(fetchBatches, 5000); // Poll every 5s
+        fetchSettings();
+        fetchJobs();
+        const interval = setInterval(fetchJobs, 5000); // Poll every 5s
         return () => clearInterval(interval);
     }, []);
+
+    const handleSaveSettings = async () => {
+        setSavingSettings(true);
+        try {
+            await fetch('/api/settings', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ scrape_delay_seconds: scrapeDelay }),
+            });
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setSavingSettings(false);
+        }
+    };
 
     const handleSubmit = async () => {
         setError(null);
@@ -96,19 +127,24 @@ export default function AdminImportPage() {
 
         setSubmitting(true);
         try {
-            const res = await fetch('/api/import-batch', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ urls }),
-            });
-            const data = await res.json();
-
-            if (data.success) {
+            let successCount = 0;
+            for (const url of urls) {
+                const res = await fetch('/api/scrape', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url }),
+                });
+                const data = await res.json();
+                if (data.success) {
+                    successCount++;
+                } else {
+                    setError(data.error);
+                }
+            }
+            if (successCount > 0) {
                 setUrlsInput('');
-                fetchBatches();
-                alert('تم بدء الاستيراد. يتم الترجمة في الخلفية.');
-            } else {
-                setError(data.error);
+                fetchJobs();
+                alert(`تم بدء الاستيراد لـ ${successCount} رابط. يتم الترجمة في الخلفية.`);
             }
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : 'Error checking batch api');
@@ -122,6 +158,25 @@ export default function AdminImportPage() {
             <header className={styles.header}>
                 <h1 className={styles.title}>استيراد الدفعات والترجمة (Batch Process)</h1>
             </header>
+
+            <div className={styles.formBox} style={{ marginBottom: '2rem' }}>
+                <h2 className={styles.listTitle}>إعدادات الساحب (Scraper Settings)</h2>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <label>
+                        تأخير السحب (ثواني):
+                        <input
+                            type="number"
+                            min="0" max="30"
+                            value={scrapeDelay}
+                            onChange={(e) => setScrapeDelay(parseInt(e.target.value) || 0)}
+                            style={{ margin: '0 1rem', padding: '0.5rem', width: '80px', borderRadius: '4px', border: '1px solid var(--border)' }}
+                        />
+                    </label>
+                    <Button onClick={handleSaveSettings} disabled={savingSettings}>
+                        {savingSettings ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
+                    </Button>
+                </div>
+            </div>
 
             <div className={styles.formBox}>
                 <h2 className={styles.listTitle}>إضافة روابط جديدة للترجمة</h2>
@@ -141,7 +196,7 @@ export default function AdminImportPage() {
                 />
 
                 <div>
-                    <Button onClick={handleSubmit} disabled={submitting}>
+                    <Button onClick={handleSubmit} disabled={submitting} aria-label="Start Scraping and Translation">
                         {submitting ? 'جاري البدء...' : 'بدء الترجمة والمعالجة'}
                     </Button>
                 </div>
@@ -150,39 +205,44 @@ export default function AdminImportPage() {
             <div className={styles.listContainer}>
                 <h2 className={styles.listTitle}>سجل المعالجات</h2>
 
-                {batches.map(batch => (
-                    <div key={batch.id} className={styles.batchItem}>
+                {jobs.map(job => (
+                    <div key={job.id} className={styles.batchItem}>
                         <div className={styles.batchHeader}>
-                            <strong>الدفعة #{batch.id}</strong>
+                            <strong>المهمة #{job.id}</strong>
                             <Badge variant={
-                                batch.status === 'completed' ? 'success' :
-                                    batch.status === 'failed' ? 'danger' :
-                                        batch.status === 'processing' ? 'gold' : 'default'
+                                job.status === 'completed' ? 'success' :
+                                    job.status === 'failed' ? 'danger' :
+                                        job.status === 'pending' ? 'default' : 'gold'
                             }>
-                                {STATUS_LABELS[batch.status] ?? batch.status}
+                                {STATUS_LABELS[job.status] ?? job.status}
                             </Badge>
                         </div>
 
                         <div className={styles.batchStatus}>
-                            <span>الروابط المُرسلة: {batch.total_articles}</span>
+                            <span>الصور الموجودة: {job.imagesFound}</span>
                             <span>-</span>
-                            <span style={{ color: 'var(--color-success)' }}>المترجمة بنجاح: {batch.translated}</span>
+                            <span style={{ color: 'var(--color-success)' }}>الصور المحملة بقاعدة البيانات: {job.imagesSaved}</span>
                             <span>-</span>
-                            <span style={{ color: 'var(--color-danger)' }}>الفاشلة: {batch.failed}</span>
+                            <span>الصفحات المعالجة: {job.pagesFound}</span>
                         </div>
 
                         <div className={styles.batchMeta}>
                             <div className={styles.metaUrl}>
-                                Base URL: {batch.source_url}
+                                URL: {job.targetUrl}
                             </div>
                             <div className={styles.metaDate} dir="rtl">
-                                بدأ في: {formatBatchDate(batch.started_at)}
+                                بدأ في: {formatJobDate(job.startedAt)}
                             </div>
+                            {job.completedAt && (
+                                <div className={styles.metaDate} dir="rtl">
+                                    انتهى في: {formatJobDate(job.completedAt)}
+                                </div>
+                            )}
                         </div>
                     </div>
                 ))}
 
-                {batches.length === 0 && <p>لا توجد دفعات حالية.</p>}
+                {jobs.length === 0 && <p>لا توجد مهام سحب حالية.</p>}
             </div>
         </div>
     );

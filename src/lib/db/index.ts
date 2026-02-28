@@ -32,6 +32,41 @@ const DB_MIGRATIONS: DbMigration[] = [
             WHERE status = 'draft';
         `,
     },
+    {
+        id: '20260228_add_settings',
+        sql: `
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+            INSERT OR IGNORE INTO settings (key, value) VALUES ('scrape_delay_seconds', '2');
+        `,
+    },
+    {
+        id: '20260228_add_scrape_jobs',
+        sql: `
+            CREATE TABLE IF NOT EXISTS scrape_jobs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                target_url TEXT NOT NULL,
+                status TEXT NOT NULL,
+                pages_found INTEGER DEFAULT 0,
+                images_found INTEGER DEFAULT 0,
+                images_saved INTEGER DEFAULT 0,
+                article_id INTEGER,
+                error_log TEXT,
+                started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                completed_at DATETIME
+            );
+        `,
+    },
+    {
+        id: '20260228_articles_scrape_fields',
+        sql: `
+            ALTER TABLE articles ADD COLUMN page_count INTEGER DEFAULT 1;
+            ALTER TABLE articles ADD COLUMN scraped_at DATETIME;
+        `,
+    },
 ];
 
 function runMigrations(database: Database.Database): void {

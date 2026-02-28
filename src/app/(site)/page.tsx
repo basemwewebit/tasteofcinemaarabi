@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -31,6 +32,14 @@ export default async function HomePage() {
             {/* Featured Section */}
             <div className={styles.hero}>
                 <article className={styles.heroFeatured}>
+                    <Image
+                        src={featured.featured_image || '/images/placeholder-cinema.webp'}
+                        fill
+                        priority
+                        sizes="100vw"
+                        alt={featured.title_ar}
+                        style={{ objectFit: 'cover' }}
+                    />
                     <div className={styles.heroContent}>
                         <Badge variant="gold" style={{ marginBottom: '1rem' }}>
                             {featured.category}
@@ -60,7 +69,16 @@ export default async function HomePage() {
                 <div className={styles.grid}>
                     {remaining.map((article) => (
                         <Card key={article.id ?? article.slug}>
-                            <div className={styles.cardImage} />
+                            <div className={styles.cardImageWrapper}>
+                                <Image
+                                    src={article.featured_image || '/images/placeholder-cinema.webp'}
+                                    fill
+                                    sizes="(max-width: 768px) 100vw, 33vw"
+                                    alt={article.title_ar}
+                                    loading="lazy"
+                                    style={{ objectFit: 'cover' }}
+                                />
+                            </div>
                             <CardContent>
                                 <Badge variant="default" style={{ marginBottom: '0.75rem' }}>
                                     {article.category}

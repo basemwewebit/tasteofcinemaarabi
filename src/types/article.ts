@@ -22,6 +22,8 @@ export interface ArticleMetadata {
     published_at?: string | null;
     created_at?: string;
     updated_at?: string;
+    page_count?: number;
+    scraped_at?: string;
 }
 
 export interface Article extends ArticleMetadata {

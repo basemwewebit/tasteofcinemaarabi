@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Amiri, Tajawal } from "next/font/google";
+import { Amiri, Tajawal, Noto_Naskh_Arabic } from "next/font/google";
 import "@/styles/globals.css";
 
 // Cinametic serif for headings and display
@@ -18,6 +18,13 @@ const tajawal = Tajawal({
   display: "swap",
 });
 
+const notoNaskh = Noto_Naskh_Arabic({
+  weight: ["400", "600", "700"],
+  subsets: ["arabic"],
+  variable: "--font-noto-naskh",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: {
     template: "%s | مذاق السينما",
@@ -33,7 +40,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl">
-      <body className={`${amiri.variable} ${tajawal.variable}`}>
+      <body className={`${amiri.variable} ${tajawal.variable} ${notoNaskh.variable}`}>
         {children}
       </body>
     </html>

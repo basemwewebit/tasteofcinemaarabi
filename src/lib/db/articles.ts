@@ -1,6 +1,74 @@
 import { getDb, formatSqliteDate } from './index';
 import { ArticleMetadata } from '@/types/article';
 
+export function upsertArticle(data: ArticleMetadata): number {
+  const db = getDb();
+  let existingId: number | null = null;
+
+  if (data.source_url) {
+    const stmt = db.prepare('SELECT * FROM articles WHERE source_url = ? ORDER BY id DESC LIMIT 1');
+    const existing = stmt.get(data.source_url) as ArticleMetadata | undefined;
+    if (existing && existing.id) {
+      existingId = existing.id;
+    }
+  }
+
+  const now = formatSqliteDate();
+
+  let tagsStr = data.tags;
+  if (Array.isArray(data.tags)) {
+    tagsStr = JSON.stringify(data.tags);
+  }
+
+  const params: Record<string, unknown> = {
+    slug: data.slug,
+    title_ar: data.title_ar,
+    title_en: data.title_en || null,
+    excerpt_ar: data.excerpt_ar || null,
+    category: data.category,
+    tags: tagsStr || null,
+    featured_image: data.featured_image || null,
+    author: data.author || 'مذاق السينما',
+    source_url: data.source_url,
+    source_site: data.source_site || 'tasteofcinema.com',
+    markdown_path: data.markdown_path || null,
+    status: data.status || 'draft',
+    published_at: data.status === 'published' ? now : null,
+    page_count: data.page_count || 1,
+    scraped_at: data.scraped_at || now,
+  };
+
+  if (existingId) {
+    const setClauses = Object.keys(params).map(k => `${k} = @${k}`).join(', ');
+    const stmt = db.prepare(`
+        UPDATE articles 
+        SET ${setClauses}, updated_at = @updated_at
+        WHERE id = @id
+    `);
+    stmt.run({ ...params, id: existingId, updated_at: now });
+    return existingId;
+  } else {
+    params.created_at = now;
+    params.updated_at = now;
+
+    const stmt = db.prepare(`
+      INSERT INTO articles (
+        slug, title_ar, title_en, excerpt_ar, category, tags,
+        featured_image, author, source_url, source_site,
+        markdown_path, status, published_at, page_count, scraped_at,
+        created_at, updated_at
+      ) VALUES (
+        @slug, @title_ar, @title_en, @excerpt_ar, @category, @tags,
+        @featured_image, @author, @source_url, @source_site,
+        @markdown_path, @status, @published_at, @page_count, @scraped_at,
+        @created_at, @updated_at
+      )
+    `);
+    const info = stmt.run(params);
+    return info.lastInsertRowid as number;
+  }
+}
+
 export function saveArticleMetadata(article: ArticleMetadata): number {
   const db = getDb();
 
