@@ -1,0 +1,36 @@
+.footer {
+  border-top: 1px solid var(--border-color);
+  background-color: var(--bg-muted);
+  padding: var(--spacing-8) 0;
+  margin-top: var(--spacing-16);
+  font-size: 0.875rem;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-4);
+  text-align: center;
+}
+
+.attribution {
+  color: var(--text-muted);
+}
+
+.attribution a {
+  color: var(--accent-color);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.attribution a:hover {
+  color: var(--accent-hover);
+}
+
+.copyright {
+  color: var(--text-muted);
+}

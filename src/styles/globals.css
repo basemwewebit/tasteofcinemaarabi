@@ -1,0 +1,73 @@
+@import './tokens.css';
+
+/* CSS Reset and base styles */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif);
+  margin-block-start: 0;
+  margin-block-end: var(--spacing-4);
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: 2.5rem;
+  font-family: var(--font-serif);
+}
+
+h2 {
+  font-size: 2rem;
+}
+
+h3 {
+  font-size: 1.5rem;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.2s ease-in-out;
+}
+
+a:hover, a:focus {
+  color: var(--accent-hover);
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+ul, ol {
+  padding-inline-start: var(--spacing-6);
+  margin-block-start: 0;
+  margin-block-end: var(--spacing-4);
+}
+
+blockquote {
+  margin: 0;
+  padding-inline-start: var(--spacing-4);
+  margin-block-end: var(--spacing-4);
+  border-inline-start: 4px solid var(--accent-color);
+  font-style: italic;
+  font-size: 1.2rem;
+  color: var(--text-muted);
+}
