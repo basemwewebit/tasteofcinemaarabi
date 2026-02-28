@@ -24,6 +24,7 @@ npm test && npm run lint
 TypeScript (strict): Follow standard conventions
 
 ## Recent Changes
+- 001-article-scraper: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 - 002-admin-auth-openrouter: Added TypeScript 5, Node.js 20+ + Next.js 15.5 (App Router), React 19, `iron-session` v8, `bcryptjs`, `openai` (existing)
 
 - 001-cinema-cms: Added TypeScript (strict) + Next.js 15 (App Router), `better-sqlite3`, `cheerio`, `openai`, `next-mdx-remote`, `fuse.js`, `lucide-react`

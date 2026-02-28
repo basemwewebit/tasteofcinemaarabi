@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import { MDXRemote } from 'next-mdx-remote/rsc';
 import { AdSlot } from '@/components/ads/AdSlot';
 import { Badge } from '@/components/ui/Badge';
-import { ArticleThumbnail } from '@/components/ui/ArticleThumbnail';
+import Image from 'next/image';
 import { getArticleBySlug } from '@/lib/db/articles';
 import { readMarkdownFile } from '@/lib/content/mdx';
 import { format } from 'date-fns';
@@ -42,6 +42,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         published_at: new Date().toISOString(),
         source_url: 'https://tasteofcinema.com',
         featured_image: undefined,
+        title_en: '',
     };
 
     const publishDate = meta.published_at
@@ -52,7 +53,15 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         <article className={styles.article}>
             <header className={styles.header}>
                 {meta.featured_image && (
-                    <ArticleThumbnail src={meta.featured_image} alt={meta.title_ar} />
+                    <div className={styles.heroBanner}>
+                        <Image
+                            src={meta.featured_image}
+                            alt={meta.title_ar}
+                            fill
+                            priority
+                            className={styles.heroImage}
+                        />
+                    </div>
                 )}
 
                 <Badge variant="gold" style={{ marginBottom: '1rem' }}>
@@ -84,10 +93,12 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
             <div className={styles.sourceBox}>
                 <p>
-                    تمت ترجمة هذا المقال باستخدام تقنيات الذكاء الاصطناعي.
+                    تمت ترجمة هذا المقال للكاتب <strong>{meta.author}</strong> باستخدام تقنيات الذكاء الاصطناعي.
                     <br />
-                    رابط المقال الأصلي:{' '}
-                    <a href={meta.source_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)' }}>
+                    <span style={{ fontSize: '0.9em', opacity: 0.8 }} dir="ltr">{meta.title_en}</span>
+                    <br />
+                    <span style={{ color: 'var(--accent-color)' }}>المصدر:</span>{' '}
+                    <a href={meta.source_url} target="_blank" rel="noopener noreferrer">
                         موقع Taste of Cinema
                     </a>
                 </p>
