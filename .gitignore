@@ -58,6 +58,7 @@ next-env.d.ts
 # Python
 __pycache__/
 *.pyc
+scraper/.venv/
 .venv/
 venv/
 dist/

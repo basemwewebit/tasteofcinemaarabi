@@ -19,9 +19,9 @@
 
 **Purpose**: Create the isolated Python scraper directory and configure tooling
 
-- [ ] T001 Create `scraper/` directory structure with `__init__.py` and `tests/__init__.py` per plan.md project structure
-- [ ] T002 Create Python project config with scrapling, pydantic, pytest, pytest-asyncio dependencies in `scraper/pyproject.toml`
-- [ ] T003 [P] Verify `.gitignore` includes `/scraped/` and `scraper/.venv/` exclusions (FR-016)
+- [X] T001 Create `scraper/` directory structure with `__init__.py` and `tests/__init__.py` per plan.md project structure
+- [X] T002 Create Python project config with scrapling, pydantic, pytest, pytest-asyncio dependencies in `scraper/pyproject.toml`
+- [X] T003 [P] Verify `.gitignore` includes `/scraped/` and `scraper/.venv/` exclusions (FR-016)
 
 ---
 
@@ -31,10 +31,10 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Implement Pydantic data models (`ArticleData`, `ManifestEntry`, `Manifest`, `ScrapeStatus` enum) in `scraper/models.py`
-- [ ] T005 Implement manifest CRUD operations (load from disk, save to disk, add entries, update entry status, compute summary counts) in `scraper/manifest.py`
-- [ ] T006 [P] Create pytest configuration and shared fixtures (mock sitemap XML, mock article HTML, temp output dirs) in `scraper/tests/conftest.py`
-- [ ] T007 Write unit tests for manifest CRUD (create, load, update status, add new entries, handle missing file) in `scraper/tests/test_manifest.py`
+- [X] T004 Implement Pydantic data models (`ArticleData`, `ManifestEntry`, `Manifest`, `ScrapeStatus` enum) in `scraper/models.py`
+- [X] T005 Implement manifest CRUD operations (load from disk, save to disk, add entries, update entry status, compute summary counts) in `scraper/manifest.py`
+- [X] T006 [P] Create pytest configuration and shared fixtures (mock sitemap XML, mock article HTML, temp output dirs) in `scraper/tests/conftest.py`
+- [X] T007 Write unit tests for manifest CRUD (create, load, update status, add new entries, handle missing file) in `scraper/tests/test_manifest.py`
 
 **Checkpoint**: Models validated, manifest read/write working, test harness ready — user story implementation can begin
 
@@ -48,11 +48,11 @@
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Implement WordPress sitemap index fetching and sub-sitemap URL extraction (parse `sitemap.xml` → find `wp-sitemap-posts-post-{1,2,3}.xml`) in `scraper/discover.py`
-- [ ] T009 [US1] Implement post sub-sitemap parsing (extract `<loc>` article URLs and `<lastmod>` dates from each sub-sitemap XML) in `scraper/discover.py`
-- [ ] T010 [US1] Implement category page fallback discovery with listing pagination (FR-001, FR-002) in `scraper/discover.py`
-- [ ] T011 [US1] Add URL deduplication and manifest population (merge discovered URLs into Manifest, skip existing slugs) in `scraper/discover.py`
-- [ ] T012 [P] [US1] Write discovery unit tests (sitemap index parsing, sub-sitemap parsing, category fallback, deduplication, error handling) in `scraper/tests/test_discover.py`
+- [X] T008 [US1] Implement WordPress sitemap index fetching and sub-sitemap URL extraction (parse `sitemap.xml` → find `wp-sitemap-posts-post-{1,2,3}.xml`) in `scraper/discover.py`
+- [X] T009 [US1] Implement post sub-sitemap parsing (extract `<loc>` article URLs and `<lastmod>` dates from each sub-sitemap XML) in `scraper/discover.py`
+- [X] T010 [US1] Implement category page fallback discovery with listing pagination (FR-001, FR-002) in `scraper/discover.py`
+- [X] T011 [US1] Add URL deduplication and manifest population (merge discovered URLs into Manifest, skip existing slugs) in `scraper/discover.py`
+- [X] T012 [P] [US1] Write discovery unit tests (sitemap index parsing, sub-sitemap parsing, category fallback, deduplication, error handling) in `scraper/tests/test_discover.py`
 
 **Checkpoint**: Running discovery produces a manifest.json with ~5,500+ article URLs, all status `pending`
 
@@ -66,13 +66,13 @@
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] Implement single-page article content extraction (title from `.entry-title`, author from `.author-name`, content HTML from `.entry-content`, featured image from `.wp-post-image`) in `scraper/extract.py`
-- [ ] T014 [US2] Implement multi-page pagination detection and content merging (follow `.page-links a` / `.pagination a` / `.post-page-numbers` selectors, merge content from `/2/`, `/3/` URLs, track visited URLs for loop protection) in `scraper/extract.py`
-- [ ] T015 [US2] Implement movie title extraction from article content (parse bold headings, numbered list patterns like "25. Movie Name") in `scraper/extract.py`
-- [ ] T016 [US2] Implement category and tag extraction from article HTML (`.cat-links a` for category slug, `.tag-links a` for tag slugs) in `scraper/extract.py`
-- [ ] T017 [US2] Add HTTP retry logic with exponential backoff (3 retries per request, FR-011) and fault-tolerant error handling (FR-014) in `scraper/extract.py`
-- [ ] T018 [US2] Add JSON output writing (serialize `ArticleData` to `scraped/articles/<slug>.json`, update manifest entry to `completed` with stats) in `scraper/extract.py`
-- [ ] T019 [P] [US2] Write extraction tests (single-page, multi-page merge, movie title parsing, category/tag extraction, retry on failure, JSON output validation against contract schema) in `scraper/tests/test_extract.py`
+- [X] T013 [US2] Implement single-page article content extraction (title from `.entry-title`, author from `.author-name`, content HTML from `.entry-content`, featured image from `.wp-post-image`) in `scraper/extract.py`
+- [X] T014 [US2] Implement multi-page pagination detection and content merging (follow `.page-links a` / `.pagination a` / `.post-page-numbers` selectors, merge content from `/2/`, `/3/` URLs, track visited URLs for loop protection) in `scraper/extract.py`
+- [X] T015 [US2] Implement movie title extraction from article content (parse bold headings, numbered list patterns like "25. Movie Name") in `scraper/extract.py`
+- [X] T016 [US2] Implement category and tag extraction from article HTML (`.cat-links a` for category slug, `.tag-links a` for tag slugs) in `scraper/extract.py`
+- [X] T017 [US2] Add HTTP retry logic with exponential backoff (3 retries per request, FR-011) and fault-tolerant error handling (FR-014) in `scraper/extract.py`
+- [X] T018 [US2] Add JSON output writing (serialize `ArticleData` to `scraped/articles/<slug>.json`, update manifest entry to `completed` with stats) in `scraper/extract.py`
+- [X] T019 [P] [US2] Write extraction tests (single-page, multi-page merge, movie title parsing, category/tag extraction, retry on failure, JSON output validation against contract schema) in `scraper/tests/test_extract.py`
 
 **Checkpoint**: Given a manifest with article URLs, extraction produces valid JSON files per article with all fields populated. Multi-page articles have merged content.
 
@@ -86,10 +86,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T020 [US3] Implement image downloading with per-article directory creation (`scraped/images/<slug>/`) and HTTP error handling in `scraper/images.py`
-- [ ] T021 [US3] Add filename sanitization (lowercase, alphanumeric + hyphens), index-prefix ordering (`00-thumbnail`, `01-name`, `02-name`), and file extension preservation in `scraper/images.py`
-- [ ] T022 [US3] Add skip-existing logic to avoid re-downloading images that already exist locally during incremental runs (FR-015) in `scraper/images.py`
-- [ ] T023 [P] [US3] Write image download tests (successful download, skip-existing, HTTP error handling, filename sanitization, thumbnail ordering) in `scraper/tests/test_images.py`
+- [X] T020 [US3] Implement image downloading with per-article directory creation (`scraped/images/<slug>/`) and HTTP error handling in `scraper/images.py`
+- [X] T021 [US3] Add filename sanitization (lowercase, alphanumeric + hyphens), index-prefix ordering (`00-thumbnail`, `01-name`, `02-name`), and file extension preservation in `scraper/images.py`
+- [X] T022 [US3] Add skip-existing logic to avoid re-downloading images that already exist locally during incremental runs (FR-015) in `scraper/images.py`
+- [X] T023 [P] [US3] Write image download tests (successful download, skip-existing, HTTP error handling, filename sanitization, thumbnail ordering) in `scraper/tests/test_images.py`
 
 **Checkpoint**: Image downloading works end-to-end. Existing images are skipped on re-run. Files organized by slug with correct naming.
 
@@ -103,9 +103,9 @@
 
 ### Implementation for User Story 4
 
-- [ ] T024 [US4] Add incremental filtering to manifest (return only `pending` and `failed` entries for processing, skip `completed`) in `scraper/manifest.py`
-- [ ] T025 [US4] Add `--force` override logic (reset all entries to `pending` status before processing) in `scraper/manifest.py`
-- [ ] T026 [P] [US4] Add re-discovery logic to detect new article URLs not yet in manifest and append them as `pending` in `scraper/discover.py`
+- [X] T024 [US4] Add incremental filtering to manifest (return only `pending` and `failed` entries for processing, skip `completed`) in `scraper/manifest.py`
+- [X] T025 [US4] Add `--force` override logic (reset all entries to `pending` status before processing) in `scraper/manifest.py`
+- [X] T026 [P] [US4] Add re-discovery logic to detect new article URLs not yet in manifest and append them as `pending` in `scraper/discover.py`
 
 **Checkpoint**: Incremental runs skip completed articles. `--force` re-scrapes all. New articles discovered and added on re-run.
 
@@ -119,11 +119,11 @@
 
 ### Implementation for User Story 5
 
-- [ ] T027 [US5] Implement argparse CLI definition with all flags (`--help`, `--discover-only`, `--force`, `--limit N`, `--delay N`, `--workers N`, `--output-dir PATH`, `--verbose`) per contracts/json-schema.md CLI contract in `scraper/scraper.py`
-- [ ] T028 [US5] Wire CLI to discovery pipeline (parse args → run sitemap discovery → save manifest → exit if `--discover-only`) in `scraper/scraper.py`
-- [ ] T029 [US5] Wire CLI to extraction and image pipeline (read manifest → filter by incremental status → extract articles → download images → update manifest) in `scraper/scraper.py`
-- [ ] T030 [US5] Add verbose progress logging (current article N/total, page count, image downloads, errors) and final summary output in `scraper/scraper.py`
-- [ ] T031 [US5] Implement exit code handling (0 = all success, 1 = partial failure, 2 = fatal error) per contracts/json-schema.md in `scraper/scraper.py`
+- [X] T027 [US5] Implement argparse CLI definition with all flags (`--help`, `--discover-only`, `--force`, `--limit N`, `--delay N`, `--workers N`, `--output-dir PATH`, `--verbose`) per contracts/json-schema.md CLI contract in `scraper/scraper.py`
+- [X] T028 [US5] Wire CLI to discovery pipeline (parse args → run sitemap discovery → save manifest → exit if `--discover-only`) in `scraper/scraper.py`
+- [X] T029 [US5] Wire CLI to extraction and image pipeline (read manifest → filter by incremental status → extract articles → download images → update manifest) in `scraper/scraper.py`
+- [X] T030 [US5] Add verbose progress logging (current article N/total, page count, image downloads, errors) and final summary output in `scraper/scraper.py`
+- [X] T031 [US5] Implement exit code handling (0 = all success, 1 = partial failure, 2 = fatal error) per contracts/json-schema.md in `scraper/scraper.py`
 
 **Checkpoint**: Full CLI works end-to-end. `--discover-only` builds manifest. Default run discovers + scrapes + downloads. All flags respected.
 
@@ -133,10 +133,10 @@
 
 **Purpose**: TypeScript pipeline integration and documentation
 
-- [ ] T032 [P] Extend `ScrapeResponse.data` interface with optional `category` and `tags` fields in `src/types/api.ts`
-- [ ] T033 Add local-JSON-read path to import pipeline (read `scraped/articles/<slug>.json`, convert snake_case → camelCase, skip remote scrape step) in `src/lib/scraper/pipeline.ts`
-- [ ] T034 [P] Create usage documentation with examples and troubleshooting in `scraper/README.md`
-- [ ] T035 Run quickstart.md validation end-to-end (setup venv, install deps, `--discover-only`, scrape `--limit 5`, verify JSON output matches contract schema)
+- [X] T032 [P] Extend `ScrapeResponse.data` interface with optional `category` and `tags` fields in `src/types/api.ts`
+- [X] T033 Add local-JSON-read path to import pipeline (read `scraped/articles/<slug>.json`, convert snake_case → camelCase, skip remote scrape step) in `src/lib/scraper/pipeline.ts`
+- [X] T034 [P] Create usage documentation with examples and troubleshooting in `scraper/README.md`
+- [X] T035 Run quickstart.md validation end-to-end (setup venv, install deps, `--discover-only`, scrape `--limit 5`, verify JSON output matches contract schema)
 
 ---
 
