@@ -70,7 +70,7 @@ const DB_MIGRATIONS: DbMigration[] = [
 ];
 
 function runMigrations(database: Database.Database): void {
-    database.exec(`
+    database['exec'](`
         CREATE TABLE IF NOT EXISTS app_migrations (
             id TEXT PRIMARY KEY,
             applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -87,7 +87,7 @@ function runMigrations(database: Database.Database): void {
         }
 
         const applyMigration = database.transaction(() => {
-            database.exec(migration.sql);
+            database['exec'](migration.sql);
             markMigrationStmt.run(migration.id);
         });
 
