@@ -14,6 +14,8 @@ export interface ScrapeResponse {
         featuredImage?: string;   // Absolute URL to article thumbnail
         inlineImages?: string[];
         movieTitles?: string[];   // Extracted movie title strings
+        category?: string;        // Primary category slug (from Python bulk scraper)
+        tags?: string[];          // Tag slugs (from Python bulk scraper)
     };
     error?: string;
 }

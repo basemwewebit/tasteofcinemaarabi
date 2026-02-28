@@ -8,24 +8,104 @@ import { translateArticle } from '../ai/translate';
 import { saveMarkdownFile } from '../content/mdx';
 import { ensureUniqueSlug } from '../content/slugs';
 import { formatSqliteDate } from '../db/index';
+import fs from 'fs';
+import path from 'path';
+import { ScrapeResponse } from '@/types/api';
+
+// ---------------------------------------------------------------------------
+// Local JSON read path (Python bulk scraper integration)
+// ---------------------------------------------------------------------------
+
+/**
+ * Shape of a JSON file produced by the Python bulk scraper.
+ * Located at: scraped/articles/<slug>.json
+ */
+interface LocalArticleJSON {
+    title: string;
+    content: string;
+    author: string;
+    url: string;
+    featured_image: string | null;
+    inline_images: string[];
+    movie_titles: string[];
+    category: string;
+    tags: string[];
+    pages_merged: number;
+    scraped_at: string;
+}
+
+/**
+ * Convert a LocalArticleJSON (snake_case from Python) to ScrapeResponse['data'].
+ */
+function localJsonToScrapeData(json: LocalArticleJSON): NonNullable<ScrapeResponse['data']> {
+    return {
+        title: json.title,
+        content: json.content,
+        author: json.author,
+        url: json.url,
+        featuredImage: json.featured_image ?? undefined,
+        inlineImages: json.inline_images,
+        movieTitles: json.movie_titles,
+        category: json.category,
+        tags: json.tags,
+    };
+}
+
+/**
+ * Resolve the path to the Python bulk scraper output for a given slug.
+ * Default location: <repo-root>/scraped/articles/<slug>.json
+ */
+function resolveLocalJsonPath(slug: string): string {
+    // Repo root is 2 levels up from src/lib/scraper/
+    const repoRoot = path.resolve(__dirname, '../../../../');
+    return path.join(repoRoot, 'scraped', 'articles', `${slug}.json`);
+}
+
+/**
+ * Attempt to read a pre-scraped article JSON from the local filesystem.
+ *
+ * Returns the parsed ScrapeResponse['data'] if the file exists,
+ * or null if the file is absent (caller should fall back to remote scrape).
+ */
+export function readLocalScrapedArticle(slug: string): NonNullable<ScrapeResponse['data']> | null {
+    const jsonPath = resolveLocalJsonPath(slug);
+    if (!fs.existsSync(jsonPath)) {
+        return null;
+    }
+    try {
+        const raw = fs.readFileSync(jsonPath, 'utf-8');
+        const json: LocalArticleJSON = JSON.parse(raw);
+        return localJsonToScrapeData(json);
+    } catch (err) {
+        console.warn(`[pipeline] Failed to read local JSON for slug "${slug}": ${err}`);
+        return null;
+    }
+}
 
 export async function runScrapePipeline(jobId: number, targetUrl: string): Promise<void> {
     try {
         // 1. Update status to scraping
         updateScrapeJob(jobId, { status: 'scraping' });
 
-        // 2. Scrape Article
-        const scrapeResult = await scrapeArticle(targetUrl);
-        if (!scrapeResult.success || !scrapeResult.data) {
-            throw new Error(scrapeResult.error || 'Scrape failed');
-        }
-
-        const scrapedData = scrapeResult.data;
-
-        // Extract base slug from URL
+        // 2. Scrape Article — prefer local JSON from Python bulk scraper
         const parsedUrl = new URL(targetUrl);
         const urlSlug = parsedUrl.pathname.split('/').filter(Boolean).pop() || 'article';
         const baseSlug = urlSlug;
+
+        let scrapedData: NonNullable<ScrapeResponse['data']>;
+        const localData = readLocalScrapedArticle(baseSlug);
+        if (localData) {
+            console.log(`[pipeline] Using local JSON for slug: ${baseSlug}`);
+            scrapedData = localData;
+        } else {
+            const scrapeResult = await scrapeArticle(targetUrl);
+            if (!scrapeResult.success || !scrapeResult.data) {
+                throw new Error(scrapeResult.error || 'Scrape failed');
+            }
+            scrapedData = scrapeResult.data;
+        }
+
+        // Extract base slug from URL (already computed above)
 
         // 3. Read delay setting
         const delaySetting = getSetting('scrape_delay_seconds');
