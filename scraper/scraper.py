@@ -78,6 +78,35 @@ def build_parser() -> argparse.ArgumentParser:
         default=False,
         help="Enable verbose logging",
     )
+    # --- New flags (006-db-deploy-scraper-filters) ---
+    parser.add_argument(
+        "--sort",
+        choices=["latest", "oldest"],
+        default="latest",
+        help="Sort order for processing: latest (default) or oldest first",
+    )
+    parser.add_argument(
+        "--article",
+        metavar="SLUG_OR_URL",
+        type=str,
+        default=None,
+        help="Scrape a single article by slug (manifest lookup) or full URL",
+    )
+    parser.add_argument(
+        "--year",
+        metavar="YYYY",
+        type=int,
+        default=None,
+        help="Filter articles by publication year (extracted from URL path)",
+    )
+    parser.add_argument(
+        "--month",
+        metavar="M",
+        type=int,
+        choices=range(1, 13),
+        default=None,
+        help="Filter articles by month (1-12, extracted from last_modified)",
+    )
     return parser
 
 
@@ -215,19 +244,50 @@ def run_scrape_phase(
     delay: float,
     limit: int | None,
     verbose: bool,
+    *,
+    sort_direction: str = "latest",
+    year_filter: int | None = None,
+    month_filter: int | None = None,
 ) -> tuple[int, int]:
     """
     Run extraction + image download for all pending entries.
 
     Returns (success_count, failure_count).
     """
-    from manifest import get_pending_entries, save_manifest
+    from manifest import (
+        extract_month_from_lastmod,
+        extract_year_from_url,
+        get_sorted_entries,
+        save_manifest,
+    )
 
-    pending = get_pending_entries(manifest)
+    # Get sorted pending entries
+    pending = get_sorted_entries(manifest, direction=sort_direction, pending_only=True)
+
+    # Apply year filter
+    if year_filter is not None:
+        pending = [e for e in pending if extract_year_from_url(e.url) == year_filter]
+
+    # Apply month filter
+    if month_filter is not None:
+        pending = [
+            e
+            for e in pending
+            if extract_month_from_lastmod(e.last_modified) == month_filter
+        ]
+
+    # Apply limit
     if limit is not None:
         pending = pending[:limit]
 
     total = len(pending)
+
+    if total == 0:
+        if verbose:
+            logging.info("No matching articles to process.")
+        print("No matching articles to process.")
+        return 0, 0
+
     fetcher = _make_fetcher(delay)
     success = 0
     failure = 0
@@ -313,6 +373,11 @@ def main(argv: list[str] | None = None) -> int:
 
     _configure_logging(args.verbose)
 
+    # Validate --year
+    if args.year is not None and args.year < 2000:
+        print(f"error: --year must be a valid year ≥ 2000, got: {args.year}", file=sys.stderr)
+        return EXIT_FATAL
+
     # Clamp workers to max 5
     workers = min(max(1, args.workers), 5)
     if workers != args.workers:
@@ -322,6 +387,10 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.verbose:
         logging.info("Output directory: %s", output_dir)
+
+    # --article mode: single article short-circuit
+    if args.article is not None:
+        return _run_single_article_mode(args, output_dir)
 
     # --- Phase 1: Discovery (T028) ---
     manifest = run_discovery_phase(output_dir, delay=args.delay, verbose=args.verbose)
@@ -353,11 +422,79 @@ def main(argv: list[str] | None = None) -> int:
         delay=args.delay,
         limit=args.limit,
         verbose=args.verbose,
+        sort_direction=args.sort,
+        year_filter=args.year,
+        month_filter=args.month,
     )
 
     _print_summary(manifest, success, failure)
 
     return _exit_code(success, failure)
+
+
+def _run_single_article_mode(args, output_dir: Path) -> int:
+    """
+    Handle --article mode: scrape a single article by slug or URL.
+
+    If combined with --year/--month, print a warning and ignore those filters.
+    """
+    from manifest import load_manifest, lookup_slug, save_manifest
+    from models import ManifestEntry, ScrapeStatus
+
+    article_val = args.article
+
+    # Warn if combined with year/month filters
+    if args.year is not None or args.month is not None:
+        print("warning: --article takes precedence; --year/--month filters ignored.", file=sys.stderr)
+
+    if article_val.startswith("http"):
+        # URL mode: skip discovery entirely
+        url = article_val
+        # Extract slug from URL
+        from discover import url_to_slug
+        slug = url_to_slug(url)
+        if args.verbose:
+            logging.info("Single-article mode (URL): %s", url)
+
+        # Create a minimal manifest with just this entry
+        manifest = load_manifest(output_dir)
+        if slug not in manifest.entries:
+            from manifest import add_entry
+            add_entry(manifest, url, slug)
+    else:
+        # Slug mode: look up in manifest
+        slug = article_val
+        if args.verbose:
+            logging.info("Single-article mode (slug): %s", slug)
+
+        manifest = load_manifest(output_dir)
+        if not manifest.entries:
+            # Manifest is empty — need discovery first
+            manifest = run_discovery_phase(output_dir, delay=args.delay, verbose=args.verbose)
+
+        url = lookup_slug(manifest, slug)  # exits 2 if not found
+
+    # Get the entry and ensure it's processable
+    entry = manifest.entries.get(slug)
+    if entry is None:
+        entry = ManifestEntry(url=url, slug=slug)
+        manifest.entries[slug] = entry
+
+    # Reset to pending if already completed (user explicitly asked for it)
+    if entry.status == ScrapeStatus.COMPLETED:
+        entry.status = ScrapeStatus.PENDING
+        entry.scraped_at = None
+
+    fetcher = _make_fetcher(args.delay)
+    ok = process_article(entry, output_dir, manifest, fetcher, args.delay, args.verbose)
+    save_manifest(manifest, output_dir)
+
+    if ok:
+        print(f"Successfully scraped: {slug}")
+        return EXIT_SUCCESS
+    else:
+        print(f"Failed to scrape: {slug}")
+        return EXIT_PARTIAL
 
 
 if __name__ == "__main__":
