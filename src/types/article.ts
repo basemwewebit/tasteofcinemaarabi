@@ -24,6 +24,7 @@ export interface ArticleMetadata {
     updated_at?: string;
     page_count?: number;
     scraped_at?: string;
+    quality_report?: string; // JSON string of TranslationQualityReport
 }
 
 export interface Article extends ArticleMetadata {

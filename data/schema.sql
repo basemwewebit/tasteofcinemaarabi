@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS articles (
     reading_time INTEGER,
     published_at DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    quality_report TEXT DEFAULT NULL
 );
 
 -- 3. Comments

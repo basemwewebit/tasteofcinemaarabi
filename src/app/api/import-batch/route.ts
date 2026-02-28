@@ -85,6 +85,9 @@ async function processBatch(batchId: number, urls: string[]) {
                 source_url: url, markdown_path: mdxPath,
                 author: 'مذاق السينما', status: 'draft',
                 featured_image: scrapeResult.data.featuredImage || undefined,
+                quality_report: translationResult.quality_report
+                    ? JSON.stringify(translationResult.quality_report)
+                    : undefined,
             });
 
             incrementBatchSuccess(batchId);
