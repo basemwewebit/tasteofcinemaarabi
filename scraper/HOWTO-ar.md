@@ -126,6 +126,39 @@ python scraper.py --delay 1.5 --workers 5
 python scraper.py --limit 100 --delay 3 --workers 2 --output-dir /data/scraper-out --verbose
 ```
 
+### ترتيب النتائج (`--sort`)
+```bash
+# زحف أحدث 10 مقالات (الافتراضي: الأحدث أولاً)
+python scraper.py --limit 10 --verbose
+
+# زحف أقدم 10 مقالات
+python scraper.py --sort oldest --limit 10 --verbose
+```
+
+### تصفية حسب السنة والشهر (`--year` / `--month`)
+```bash
+# جميع مقالات 2024
+python scraper.py --year 2024 --verbose
+
+# يونيو 2024 فقط
+python scraper.py --year 2024 --month 6 --verbose
+
+# أي شهر ديسمبر، عبر جميع السنوات
+python scraper.py --month 12 --verbose
+
+# أقدم 5 مقالات من 2023
+python scraper.py --year 2023 --sort oldest --limit 5 --verbose
+```
+
+### مقال واحد (`--article`)
+```bash
+# بالـ slug (يجب أن يكون في manifest — شغّل --discover-only أولاً إن لزم)
+python scraper.py --article 10-best-actors-of-all-time-relay-race --verbose
+
+# بالرابط الكامل (لا حاجة للبحث في manifest)
+python scraper.py --article https://www.tasteofcinema.com/2024/my-article/ --verbose
+```
+
 ---
 
 ## هيكل المخرجات
@@ -198,6 +231,67 @@ print(f'معلّق:      {m[\"total\"] - m[\"completed\"] - m[\"failed\"]}')
 
 ---
 
+## مرجع أوامر CLI
+
+```
+usage: scraper.py [-h] [--discover-only] [--force] [--limit N]
+                  [--delay SECONDS] [--workers N] [--output-dir DIR]
+                  [--verbose] [--sort {latest,oldest}]
+                  [--article SLUG_OR_URL] [--year YYYY] [--month M]
+
+options:
+  -h, --help              عرض المساعدة والخروج
+  --discover-only         اكتشاف الروابط فقط بدون زحف
+  --force                 إعادة زحف الكل بتجاهل حالة manifest
+  --limit N               الحد الأقصى لعدد المقالات (الافتراضي: الكل)
+  --delay SECONDS         التأخير بين الطلبات بالثواني (الافتراضي: 2.0)
+  --workers N             عدد العمال المتوازيين (الافتراضي: 3، الأقصى: 5)
+  --output-dir DIR        مجلد المخرجات (الافتراضي: ../scraped)
+  --verbose               تفعيل التسجيل المفصّل
+  --sort {latest,oldest}  ترتيب: latest الأحدث (افتراضي) أو oldest الأقدم
+  --article SLUG_OR_URL   زحف مقال واحد بالـ slug أو الرابط الكامل
+  --year YYYY             تصفية حسب سنة النشر (من مسار URL)
+  --month M               تصفية حسب الشهر (1-12، من last_modified)
+```
+
+### ترتيب تطبيق الفلاتر
+
+عند دمج عدة فلاتر، تُطبَّق بهذا الترتيب:
+
+1. `--article` → اختيار مقال واحد مباشرة (يتخطى الخطوات 2–5)
+2. `--year` → تصفية حسب السنة من مسار URL
+3. `--month` → تصفية حسب الشهر من lastmod
+4. `--sort` → ترتيب النتائج (latest أو oldest)
+5. `--limit` → تقليص العدد إلى N
+6. فلتر الحالة → المنطق التزايدي الموجود (pending/failed)
+
+### رموز الخروج
+
+| الرمز | المعنى |
+|-------|--------|
+| `0`   | تم زحف جميع المقالات المستهدفة بنجاح |
+| `1`   | فشل جزئي — بعض المقالات فشلت (راجع manifest) |
+| `2`   | خطأ فادح — فشل الاكتشاف أو وسيطات غير صالحة |
+
+---
+
+## تشغيل الاختبارات
+
+```bash
+# من مجلد scraper/ (مع تفعيل .venv)
+pip install -e ".[dev]"        # يثبّت pytest, pytest-asyncio
+
+# تشغيل جميع الاختبارات
+pytest tests/ -v
+
+# تشغيل اختبارات الترتيب والتصفية فقط
+pytest tests/test_sort.py tests/test_filter.py -v
+```
+
+النتيجة المتوقعة: جميع الاختبارات تنجح مع HTTP مُحاكى (لا حاجة لشبكة حقيقية).
+
+---
+
 ## حل المشكلات الشائعة
 
 | المشكلة | الحل |
@@ -208,6 +302,8 @@ print(f'معلّق:      {m[\"total\"] - m[\"completed\"] - m[\"failed\"]}')
 | القرص ممتلئ | الصور تحتاج ~10–20 GB، تأكد من المساحة الكافية |
 | توقف مفاجئ | شغّل `python scraper.py` مباشرة، سيكمل من آخر نقطة |
 | مقالات فاشلة كثيرة | راجع الأخطاء في manifest ثم `python scraper.py` مجدداً |
+| `--article` slug غير موجود | شغّل `--discover-only` أولاً لبناء manifest |
+| `--year` بدون نتائج | تأكد أن السنة بين 2000 والسنة الحالية |
 
 ---
 
@@ -231,6 +327,21 @@ python scraper.py --verbose
 
 # إعادة الكل من الصفر
 python scraper.py --force --verbose
+
+# أحدث 10 مقالات
+python scraper.py --sort latest --limit 10 --verbose
+
+# مقال واحد بالـ slug
+python scraper.py --article my-article-slug --verbose
+
+# مقالات سنة 2024
+python scraper.py --year 2024 --verbose
+
+# يونيو 2024 فقط
+python scraper.py --year 2024 --month 6 --verbose
+
+# تشغيل الاختبارات
+pytest tests/ -v
 
 # مساعدة
 python scraper.py --help

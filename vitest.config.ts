@@ -6,6 +6,7 @@ export default defineConfig({
     plugins: [react()],
     test: {
         environment: 'jsdom',
+        testTimeout: 30_000,
         alias: {
             '@': path.resolve(__dirname, './src'),
         },

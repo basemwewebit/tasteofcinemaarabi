@@ -6,7 +6,11 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:migrate": "npx tsx scripts/setup-db.ts",
+    "db:migrate:fresh": "npx tsx scripts/db-migrate-fresh.ts",
+    "db:seed": "npx tsx scripts/db-seed.ts",
+    "db:migrate:status": "npx tsx scripts/db-migrate-status.ts"
   },
   "dependencies": {
     "@types/better-sqlite3": "^7.6.13",

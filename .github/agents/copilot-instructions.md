@@ -7,6 +7,8 @@ Auto-generated from all feature plans. Last updated: 2026-02-28
 - Local filesystem — JSON files (`scraped/articles/`), images (`scraped/images/`), manifest (`scraped/manifest.json`) (004-python-bulk-scraper)
 - TypeScript 5.x (strict mode), Next.js 15.5 (App Router, Turbopack) + next-mdx-remote 6.x (RSC), better-sqlite3, openai SDK 6.x (OpenRouter), cheerio, lucide-react (005-trailer-embed)
 - SQLite via better-sqlite3 (existing); new `article_trailers` table + MDX files on disk (005-trailer-embed)
+- TypeScript 5.9 (Node 20, Next.js 15.5) for DB commands; Python 3.12 (Pydantic) for scraper + better-sqlite3 (DB), argparse + lxml + Pydantic (scraper) (006-db-deploy-scraper-filters)
+- SQLite (`data/cinema.db`) with schema in `data/schema.sql` (006-db-deploy-scraper-filters)
 
 - TypeScript 5.x (strict mode) on Node.js + Next.js 15.5 (App Router, Server Components), React 19, cheerio 1.2, openai SDK 6.25 (via OpenRouter), next-mdx-remote 6, better-sqlite3 (003-article-page-enhancement)
 
@@ -26,10 +28,10 @@ npm test && npm run lint
 TypeScript 5.x (strict mode) on Node.js: Follow standard conventions
 
 ## Recent Changes
+- 006-db-deploy-scraper-filters: Added TypeScript 5.9 (Node 20, Next.js 15.5) for DB commands; Python 3.12 (Pydantic) for scraper + better-sqlite3 (DB), argparse + lxml + Pydantic (scraper)
+- 006-db-deploy-scraper-filters: Added TypeScript 5.9 (Node 20, Next.js 15.5) for DB commands; Python 3.12 (Pydantic) for scraper + better-sqlite3 (DB), argparse + lxml + Pydantic (scraper)
 - 005-trailer-embed: Added TypeScript 5.x (strict mode), Next.js 15.5 (App Router, Turbopack) + next-mdx-remote 6.x (RSC), better-sqlite3, openai SDK 6.x (OpenRouter), cheerio, lucide-react
-- 004-python-bulk-scraper: Added Python 3.10+ (Scrapling minimum) + Scrapling (Spider + Fetcher), argparse (CLI), lxml (sitemap XML parsing — included via Scrapling)
 
-- 003-article-page-enhancement: Added TypeScript 5.x (strict mode) on Node.js + Next.js 15.5 (App Router, Server Components), React 19, cheerio 1.2, openai SDK 6.25 (via OpenRouter), next-mdx-remote 6, better-sqlite3
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

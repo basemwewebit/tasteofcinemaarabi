@@ -71,6 +71,42 @@ python scraper.py --output-dir /data/tasteofcinema-scraped
 python scraper.py --workers 2 --delay 1.5
 ```
 
+### Sort order
+
+```bash
+# Scrape the 10 most recent articles (default: newest first)
+python scraper.py --limit 10 --verbose
+
+# Scrape the 10 oldest articles
+python scraper.py --sort oldest --limit 10 --verbose
+```
+
+### Filter by year/month
+
+```bash
+# All articles from 2024
+python scraper.py --year 2024 --verbose
+
+# June 2024 only
+python scraper.py --year 2024 --month 6 --verbose
+
+# Any December, across all years
+python scraper.py --month 12 --verbose
+
+# 5 oldest articles from 2023
+python scraper.py --year 2023 --sort oldest --limit 5 --verbose
+```
+
+### Single article
+
+```bash
+# By slug (must be in manifest — run --discover-only first if needed)
+python scraper.py --article 10-best-actors-of-all-time-relay-race --verbose
+
+# By full URL (no manifest lookup needed)
+python scraper.py --article https://www.tasteofcinema.com/2024/my-article/ --verbose
+```
+
 ---
 
 ## CLI Reference
@@ -78,18 +114,34 @@ python scraper.py --workers 2 --delay 1.5
 ```
 usage: scraper.py [-h] [--discover-only] [--force] [--limit N]
                   [--delay SECONDS] [--workers N] [--output-dir DIR]
-                  [--verbose]
+                  [--verbose] [--sort {latest,oldest}]
+                  [--article SLUG_OR_URL] [--year YYYY] [--month M]
 
 options:
-  -h, --help         show this help message and exit
-  --discover-only    Only discover URLs and build manifest; do not scrape
-  --force            Re-scrape all articles, ignoring manifest status
-  --limit N          Maximum number of articles to scrape (default: all)
-  --delay SECONDS    Delay between requests in seconds (default: 2.0)
-  --workers N        Number of parallel workers (default: 3, max: 5)
-  --output-dir DIR   Output directory (default: ../scraped)
-  --verbose          Enable verbose logging
+  -h, --help              show this help message and exit
+  --discover-only         Only discover URLs and build manifest; do not scrape
+  --force                 Re-scrape all articles, ignoring manifest status
+  --limit N               Maximum number of articles to scrape (default: all)
+  --delay SECONDS         Delay between requests in seconds (default: 2.0)
+  --workers N             Number of parallel workers (default: 3, max: 5)
+  --output-dir DIR        Output directory (default: ../scraped)
+  --verbose               Enable verbose logging
+  --sort {latest,oldest}  Sort order: latest (default) or oldest first
+  --article SLUG_OR_URL   Scrape a single article by slug or full URL
+  --year YYYY             Filter by publication year (from URL path)
+  --month M               Filter by month (1-12, from last_modified)
 ```
+
+### Filter application order
+
+When multiple filters are combined, they are applied in this order:
+
+1. `--article` → short-circuit to single entry (skips steps 2-5)
+2. `--year` → filter by URL path year
+3. `--month` → filter by lastmod month
+4. `--sort` → sort remaining entries (latest|oldest)
+5. `--limit` → truncate to N entries
+6. Pending/failed filter → existing incremental logic
 
 **Exit codes**:
 | Code | Meaning |
@@ -142,7 +194,12 @@ Each `scraped/articles/<slug>.json` matches the contract in
 ```bash
 # From the scraper/ directory (with .venv activated)
 pip install -e ".[dev]"        # installs pytest, pytest-asyncio
+
+# Run all tests
 pytest tests/ -v
+
+# Run only sort/filter tests
+pytest tests/test_sort.py tests/test_filter.py -v
 ```
 
 Expected: all tests pass with mocked HTTP (no live network required).

@@ -1,11 +1,13 @@
 /**
- * scripts/setup-db.ts — db:migrate entry point.
+ * scripts/db-migrate-fresh.ts — db:migrate:fresh entry point.
  *
- * Creates the SQLite database, applies data/schema.sql (IF NOT EXISTS),
- * and runs incremental migrations from src/lib/db/index.ts.
+ * Drops ALL user tables, triggers, and views then re-applies
+ * data/schema.sql and incremental migrations from scratch.
  *
- * Usage: npx tsx scripts/setup-db.ts
- * Exit 0 on success, exit 1 on error.
+ * REQUIRES --force flag to execute (safety guard).
+ *
+ * Usage: npx tsx scripts/db-migrate-fresh.ts --force
+ * Exit 0 on success, exit 1 on error or missing --force.
  */
 import Database from 'better-sqlite3';
 import { readFileSync, existsSync, mkdirSync } from 'fs';
@@ -15,6 +17,17 @@ const dbPath = process.env.DB_PATH || join(process.cwd(), 'data', 'cinema.db');
 const schemaPath = join(process.cwd(), 'data', 'schema.sql');
 
 function main(): void {
+    // Check --force flag
+    const args = process.argv.slice(2);
+    if (!args.includes('--force')) {
+        console.error(
+            '⚠️  This will DROP ALL TABLES and recreate from schema.\n' +
+                `   All data in ${dbPath} will be permanently deleted.\n` +
+                '   Run with --force to confirm.'
+        );
+        process.exit(1);
+    }
+
     const start = performance.now();
 
     // Ensure parent directory exists
@@ -33,14 +46,50 @@ function main(): void {
 
     const db = new Database(dbPath);
     try {
-        // Apply schema (CREATE TABLE IF NOT EXISTS — idempotent)
+        // Disable foreign keys for safe dropping
+        db.pragma('foreign_keys = OFF');
+
+        // Query all user-created objects from sqlite_master
+        const triggers = db
+            .prepare(
+                "SELECT name FROM sqlite_master WHERE type='trigger' AND name NOT LIKE 'sqlite_%'"
+            )
+            .all() as { name: string }[];
+
+        const views = db
+            .prepare(
+                "SELECT name FROM sqlite_master WHERE type='view' AND name NOT LIKE 'sqlite_%'"
+            )
+            .all() as { name: string }[];
+
+        const tables = db
+            .prepare(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+            )
+            .all() as { name: string }[];
+
+        // Drop in order: triggers → views → tables
+        for (const t of triggers) {
+            db['exec'](`DROP TRIGGER IF EXISTS "${t.name}"`);
+        }
+        for (const v of views) {
+            db['exec'](`DROP VIEW IF EXISTS "${v.name}"`);
+        }
+        for (const t of tables) {
+            db['exec'](`DROP TABLE IF EXISTS "${t.name}"`);
+        }
+
+        // Re-enable foreign keys
+        db.pragma('foreign_keys = ON');
+
+        // Re-apply schema
         db['exec'](schema);
 
-        // Run incremental migrations (reuses logic from src/lib/db/index.ts)
+        // Re-run incremental migrations
         const migrationsApplied = runMigrations(db);
 
-        // Gather summary info
-        const tables = db
+        // Gather new table list
+        const newTables = db
             .prepare(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
             )
@@ -48,16 +97,17 @@ function main(): void {
 
         const elapsed = ((performance.now() - start) / 1000).toFixed(2);
 
-        console.log(`Database initialized successfully with schema at ${dbPath}`);
+        console.log(
+            `Dropped ${tables.length} table(s), ${triggers.length} trigger(s).`
+        );
+        console.log(`Schema reapplied from ${schemaPath}.`);
         if (migrationsApplied > 0) {
             console.log(`Applied ${migrationsApplied} incremental migration(s).`);
-        } else {
-            console.log('All migrations already applied.');
         }
-        console.log(`Tables: ${tables.map((t) => t.name).join(', ')}`);
-        console.log(`Completed in ${elapsed}s.`);
+        console.log(`Tables: ${newTables.map((t) => t.name).join(', ')}`);
+        console.log(`Fresh migration complete in ${elapsed}s.`);
     } catch (err) {
-        console.error('Error initializing database:', err);
+        console.error('Error during fresh migration:', err);
         process.exit(1);
     } finally {
         db.close();

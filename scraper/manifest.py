@@ -2,7 +2,8 @@
 manifest.py — Manifest CRUD operations.
 
 Handles load/save from disk, add/update entries, status transitions,
-incremental filtering, and --force override.
+incremental filtering, sorting, slug lookup, year/month extraction,
+and --force override.
 
 See: specs/004-python-bulk-scraper/data-model.md
 """
@@ -10,8 +11,10 @@ See: specs/004-python-bulk-scraper/data-model.md
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlparse
 
 from models import Manifest, ManifestEntry, ScrapeStatus
 
@@ -157,3 +160,129 @@ def reset_all_to_pending(manifest: Manifest) -> int:
             entry.error = None
             count += 1
     return count
+
+
+# ---------------------------------------------------------------------------
+# Sorting (T010)
+# ---------------------------------------------------------------------------
+
+_YEAR_RE = re.compile(r"^/(\d{4})/")
+
+
+def get_sorted_entries(
+    manifest: Manifest,
+    *,
+    direction: str = "latest",
+    pending_only: bool = True,
+) -> list[ManifestEntry]:
+    """
+    Return manifest entries sorted by ``last_modified``.
+
+    Parameters
+    ----------
+    direction : ``"latest"`` | ``"oldest"``
+        Sort newest-first or oldest-first.
+    pending_only : bool
+        If True (default), only return entries with status pending or failed.
+
+    Entries **without** ``last_modified`` are always placed at the end,
+    regardless of sort direction.
+    """
+    if pending_only:
+        entries = [
+            e
+            for e in manifest.entries.values()
+            if e.status in (ScrapeStatus.PENDING, ScrapeStatus.FAILED)
+        ]
+    else:
+        entries = list(manifest.entries.values())
+
+    def sort_key(entry: ManifestEntry) -> tuple[int, datetime]:
+        """Return (has_date, parsed_datetime) for sorting."""
+        if entry.last_modified is None:
+            # Place at end: (1, epoch) ensures they sort after dated entries
+            return (1, datetime.min.replace(tzinfo=timezone.utc))
+        try:
+            dt = datetime.fromisoformat(entry.last_modified)
+            # Normalize to UTC for correct cross-timezone comparison
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return (0, dt)
+        except (ValueError, TypeError):
+            return (1, datetime.min.replace(tzinfo=timezone.utc))
+
+    reverse = direction == "latest"
+    entries.sort(key=sort_key, reverse=reverse)
+
+    # Since we used reverse but nulls should always be at end,
+    # re-partition: dated first (sorted), then undated
+    dated = [e for e in entries if e.last_modified is not None]
+    undated = [e for e in entries if e.last_modified is None]
+
+    # Re-sort dated correctly
+    dated.sort(
+        key=lambda e: sort_key(e)[1],
+        reverse=reverse,
+    )
+
+    return dated + undated
+
+
+# ---------------------------------------------------------------------------
+# Slug lookup (T015)
+# ---------------------------------------------------------------------------
+
+
+def lookup_slug(manifest: Manifest, slug: str) -> str:
+    """
+    Look up a slug in the manifest and return the corresponding URL.
+
+    Raises ``SystemExit`` with a descriptive error if the slug is not found.
+    """
+    if slug in manifest.entries:
+        return manifest.entries[slug].url
+
+    import sys
+
+    print(
+        f'error: Slug "{slug}" not found in manifest.\n'
+        f"       Provide the full URL instead: --article https://www.tasteofcinema.com/YYYY/slug/\n"
+        f"       Or run discovery first: python scraper.py --discover-only",
+        file=sys.stderr,
+    )
+    sys.exit(2)
+
+
+# ---------------------------------------------------------------------------
+# Year / month extraction (T018, T022)
+# ---------------------------------------------------------------------------
+
+
+def extract_year_from_url(url: str) -> int | None:
+    """
+    Extract publication year from URL path.
+
+    Uses regex ``^/(\\d{4})/`` on the URL path.
+    Returns the year as int, or None if not found.
+    """
+    path = urlparse(url).path
+    m = _YEAR_RE.match(path)
+    if m:
+        return int(m.group(1))
+    return None
+
+
+def extract_month_from_lastmod(last_modified: str | None) -> int | None:
+    """
+    Extract month from a ``last_modified`` ISO 8601 string.
+
+    Uses local time (no UTC conversion) per research R8.
+    Returns month (1–12) or None if parsing fails or input is None.
+    """
+    if last_modified is None:
+        return None
+    try:
+        dt = datetime.fromisoformat(last_modified)
+        return dt.month
+    except (ValueError, TypeError):
+        return None
