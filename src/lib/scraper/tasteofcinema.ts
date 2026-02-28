@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio';
+import type { CheerioAPI } from 'cheerio';
 import { ScrapeResponse } from '@/types/api';
 
 const MAX_FETCH_RETRIES = 3;
@@ -48,6 +49,10 @@ export async function scrapeArticle(url: string): Promise<ScrapeResponse> {
         const title = $('.entry-title').first().text().trim() || $('title').text().trim();
         const author = $('.author-name').text().trim() || 'Taste of Cinema';
 
+        // Extract structured data BEFORE extractContent (which may reparent DOM nodes)
+        const featuredImage = extractFeaturedImage($, url);
+        const movieTitles = extractMovieTitles($);
+
         // Attempt pagination
         let rawContent = extractContent($('.entry-content'));
 
@@ -91,7 +96,9 @@ export async function scrapeArticle(url: string): Promise<ScrapeResponse> {
                 title,
                 content: cleanHTML(rawContent),
                 url,
-                author
+                author,
+                featuredImage: featuredImage || undefined,
+                movieTitles: movieTitles.length > 0 ? movieTitles : undefined,
             }
         };
     } catch (err: unknown) {
@@ -137,4 +144,74 @@ function extractContent($el: cheerio.Cheerio<any>): string {
 function cleanHTML(str: string): string {
     // Strip out multiple newlines, ad placeholders, etc.
     return str.replace(/\n\s*\n/g, '\n\n').trim();
+}
+
+/**
+ * Extract the featured image URL from the page.
+ * Waterfall: og:image → first img in .entry-content → img.wp-post-image
+ * Resolves relative URLs to absolute using the page URL.
+ */
+export function extractFeaturedImage($: CheerioAPI, pageUrl: string): string | null {
+    const ogImage = $('meta[property="og:image"]').attr('content')?.trim();
+    const firstContentImg = $('.entry-content img').first().attr('src')?.trim();
+    const wpPostImg = $('img.wp-post-image').first().attr('src')?.trim();
+
+    const raw = ogImage || firstContentImg || wpPostImg || '';
+
+    if (!raw) return null;
+
+    try {
+        const resolved = new URL(raw, pageUrl).toString();
+        // Only store valid HTTP(S) URLs
+        if (resolved.startsWith('http://') || resolved.startsWith('https://')) {
+            return resolved;
+        }
+        return null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Extract movie titles from structured HTML markup.
+ * Two-pass extraction:
+ *   1. Numbered headings (h2, h3, p > span) matching /^\d+[\.\)]\s+(.+)/
+ *   2. Inline emphasis (em, strong) with short text (< 80 chars) that looks like a title
+ * Returns deduplicated array of title strings.
+ */
+export function extractMovieTitles($: CheerioAPI): string[] {
+    const titles = new Set<string>();
+
+    // Pass 1: Numbered headings
+    $('.entry-content h2, .entry-content h3, .entry-content p > span').each((_, el) => {
+        const text = $(el).text().trim();
+        const match = text.match(/^\d+[\.\)]\s+(.+)/);
+        if (match) {
+            // Strip trailing year in parentheses for a clean title, but keep both versions
+            const rawTitle = match[1].trim();
+            titles.add(rawTitle);
+
+            // Also add the version without year suffix, e.g. "Back to the Wall (1958)" → "Back to the Wall"
+            const withoutYear = rawTitle.replace(/\s*\(\d{4}\)\s*$/, '').trim();
+            if (withoutYear && withoutYear !== rawTitle) {
+                titles.add(withoutYear);
+            }
+        }
+    });
+
+    // Pass 2: Inline emphasis tags (em, strong) with title-like text
+    $('.entry-content em, .entry-content strong').each((_, el) => {
+        const text = $(el).text().trim();
+        // Filter: non-empty, under 80 chars, at least 2 chars, looks like a title (starts with uppercase or non-Latin)
+        if (
+            text.length >= 2 &&
+            text.length < 80 &&
+            !text.match(/^\d+$/) && // Skip pure numbers
+            !text.match(/^[a-z]/) // Skip sentences that start lowercase (likely not titles)
+        ) {
+            titles.add(text);
+        }
+    });
+
+    return Array.from(titles);
 }

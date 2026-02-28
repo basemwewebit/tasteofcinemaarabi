@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { MDXRemote } from 'next-mdx-remote/rsc';
 import { AdSlot } from '@/components/ads/AdSlot';
 import { Badge } from '@/components/ui/Badge';
+import { ArticleThumbnail } from '@/components/ui/ArticleThumbnail';
 import { getArticleBySlug } from '@/lib/db/articles';
 import { readMarkdownFile } from '@/lib/content/mdx';
 import { format } from 'date-fns';
@@ -39,7 +40,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         category: 'غير مصنف',
         author: 'مذاق السينما',
         published_at: new Date().toISOString(),
-        source_url: 'https://tasteofcinema.com'
+        source_url: 'https://tasteofcinema.com',
+        featured_image: undefined,
     };
 
     const publishDate = meta.published_at
@@ -49,6 +51,10 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     return (
         <article className={styles.article}>
             <header className={styles.header}>
+                {meta.featured_image && (
+                    <ArticleThumbnail src={meta.featured_image} alt={meta.title_ar} />
+                )}
+
                 <Badge variant="gold" style={{ marginBottom: '1rem' }}>
                     {meta.category}
                 </Badge>
