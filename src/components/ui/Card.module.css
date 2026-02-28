@@ -1,0 +1,29 @@
+.card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.card:hover {
+  border-color: var(--text-muted);
+  transform: translateY(-2px);
+}
+
+.cardContent {
+  padding: var(--spacing-4);
+  flex-grow: 1;
+}
+
+.cardHeader {
+  margin-block-end: var(--spacing-3);
+}
+
+.cardFooter {
+  padding: var(--spacing-3) var(--spacing-4);
+  border-top: 1px solid var(--border-color);
+  background-color: var(--bg-muted);
+}

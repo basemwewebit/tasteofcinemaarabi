@@ -1,0 +1,58 @@
+/* src/styles/tokens.css - Cinematic Editorial Brutalism & Noir Gold Palette */
+:root {
+  /* Colors */
+  --color-noir: #0a0a0a;
+  --color-noir-muted: #1a1a1a;
+  --color-noir-light: #2a2a2a;
+  --color-gold: #d4af37;
+  --color-gold-muted: #aa8c2c;
+  --color-gold-bright: #f3c63a;
+  --color-paper: #f4f1ea;       /* For light mode */
+  --color-paper-muted: #e6e2da;
+  --color-ink: #111111;         /* For light mode */
+  --color-ink-muted: #444444;
+  --color-white: #ffffff;
+  --color-danger: #e23636;
+  --color-success: #28a745;
+
+  /* Typography */
+  --font-serif: var(--font-amiri), 'Times New Roman', serif;
+  --font-sans: var(--font-tajawal), 'Arial', sans-serif;
+  
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-5: 1.5rem;
+  --spacing-6: 2rem;
+  --spacing-8: 3rem;
+  --spacing-12: 4rem;
+  --spacing-16: 6rem;
+
+  --border-radius-sm: 2px;
+  --border-radius: 4px;
+  --border-radius-lg: 8px;
+
+  /* Default theme is dark for "Cinematic", but support light */
+  --bg-color: var(--color-noir);
+  --bg-muted: var(--color-noir-muted);
+  --bg-surface: var(--color-noir-light);
+  --text-color: var(--color-paper);
+  --text-muted: #a0a0a0;
+  --border-color: #333333;
+  --accent-color: var(--color-gold);
+  --accent-hover: var(--color-gold-bright);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg-color: var(--color-paper);
+    --bg-muted: var(--color-white);
+    --bg-surface: var(--color-paper-muted);
+    --text-color: var(--color-ink);
+    --text-muted: var(--color-ink-muted);
+    --border-color: #cccccc;
+    --accent-color: var(--color-gold-muted);
+    --accent-hover: var(--color-gold);
+  }
+}
