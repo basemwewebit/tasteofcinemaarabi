@@ -1,23 +1,21 @@
 /* src/styles/tokens.css - Cinematic Editorial Brutalism & Noir Gold Palette */
 :root {
-  /* Colors */
-  --color-noir: #0a0a0a;
-  --color-noir-muted: #1a1a1a;
-  --color-noir-light: #2a2a2a;
-  --color-gold: #d4af37;
-  --color-gold-muted: #aa8c2c;
-  --color-gold-bright: #f3c63a;
-  --color-paper: #f4f1ea;       /* For light mode */
-  --color-paper-muted: #e6e2da;
-  --color-ink: #111111;         /* For light mode */
-  --color-ink-muted: #444444;
+  /* Colors - Kinetic Minimalism */
+  --color-charcoal: #111827;
+  --color-charcoal-muted: #1f2937;
+  --color-charcoal-light: #374151;
+  --color-orange: #f97316;
+  --color-orange-muted: #ea580c;
+  --color-orange-bright: #fdba74;
+  --color-offwhite: #fafafa;
+  --color-offwhite-muted: #f3f4f6;
   --color-white: #ffffff;
-  --color-danger: #e23636;
-  --color-success: #28a745;
+  --color-danger: #ef4444;
+  --color-success: #22c55e;
 
   /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-serif: var(--font-amiri), 'Times New Roman', serif;
-  --font-sans: var(--font-tajawal), 'Arial', sans-serif;
   
   --spacing-1: 0.25rem;
   --spacing-2: 0.5rem;
@@ -33,26 +31,26 @@
   --border-radius: 4px;
   --border-radius-lg: 8px;
 
-  /* Default theme is dark for "Cinematic", but support light */
-  --bg-color: var(--color-noir);
-  --bg-muted: var(--color-noir-muted);
-  --bg-surface: var(--color-noir-light);
-  --text-color: var(--color-paper);
-  --text-muted: #a0a0a0;
-  --border-color: #333333;
-  --accent-color: var(--color-gold);
-  --accent-hover: var(--color-gold-bright);
+  /* Light Theme Default for High Contrast */
+  --bg-color: var(--color-offwhite);
+  --bg-muted: var(--color-white);
+  --bg-surface: var(--color-offwhite-muted);
+  --text-color: var(--color-charcoal);
+  --text-muted: var(--color-charcoal-light);
+  --border-color: #e5e7eb;
+  --accent-color: var(--color-orange);
+  --accent-hover: var(--color-orange-muted);
 }
 
-@media (prefers-color-scheme: light) {
+@media (prefers-color-scheme: dark) {
   :root {
-    --bg-color: var(--color-paper);
-    --bg-muted: var(--color-white);
-    --bg-surface: var(--color-paper-muted);
-    --text-color: var(--color-ink);
-    --text-muted: var(--color-ink-muted);
-    --border-color: #cccccc;
-    --accent-color: var(--color-gold-muted);
-    --accent-hover: var(--color-gold);
+    --bg-color: var(--color-charcoal);
+    --bg-muted: var(--color-charcoal-muted);
+    --bg-surface: var(--color-charcoal-light);
+    --text-color: var(--color-offwhite);
+    --text-muted: #9ca3af;
+    --border-color: #4b5563;
+    --accent-color: var(--color-orange);
+    --accent-hover: var(--color-orange-bright);
   }
 }

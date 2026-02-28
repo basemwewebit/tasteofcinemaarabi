@@ -21,6 +21,8 @@
 .primary:hover {
   background-color: var(--accent-hover);
   border-color: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
 }
 
 .secondary {
@@ -32,4 +34,6 @@
 .secondary:hover {
   background-color: var(--bg-surface);
   border-color: var(--text-muted);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
 }
