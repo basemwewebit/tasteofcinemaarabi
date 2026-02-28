@@ -128,6 +128,12 @@ const DB_MIGRATIONS: DbMigration[] = [
             ALTER TABLE articles ADD COLUMN scraped_at DATETIME;
         `,
     },
+    {
+        id: '20260228_articles_quality_report',
+        sql: `
+            ALTER TABLE articles ADD COLUMN quality_report TEXT DEFAULT NULL;
+        `,
+    },
 ];
 
 function runMigrations(db: Database.Database): number {

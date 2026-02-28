@@ -36,6 +36,7 @@ export function upsertArticle(data: ArticleMetadata): number {
     published_at: data.status === 'published' ? now : null,
     page_count: data.page_count || 1,
     scraped_at: data.scraped_at || now,
+    quality_report: data.quality_report || null,
   };
 
   if (existingId) {
@@ -56,12 +57,12 @@ export function upsertArticle(data: ArticleMetadata): number {
         slug, title_ar, title_en, excerpt_ar, category, tags,
         featured_image, author, source_url, source_site,
         markdown_path, status, published_at, page_count, scraped_at,
-        created_at, updated_at
+        quality_report, created_at, updated_at
       ) VALUES (
         @slug, @title_ar, @title_en, @excerpt_ar, @category, @tags,
         @featured_image, @author, @source_url, @source_site,
         @markdown_path, @status, @published_at, @page_count, @scraped_at,
-        @created_at, @updated_at
+        @quality_report, @created_at, @updated_at
       )
     `);
     const info = stmt.run(params);
@@ -82,11 +83,13 @@ export function saveArticleMetadata(article: ArticleMetadata): number {
     INSERT INTO articles (
       slug, title_ar, title_en, excerpt_ar, category, tags,
       featured_image, author, source_url, source_site,
-      markdown_path, status, published_at, created_at, updated_at
+      markdown_path, status, published_at, quality_report,
+      created_at, updated_at
     ) VALUES (
       @slug, @title_ar, @title_en, @excerpt_ar, @category, @tags,
       @featured_image, @author, @source_url, @source_site,
-      @markdown_path, @status, @published_at, @created_at, @updated_at
+      @markdown_path, @status, @published_at, @quality_report,
+      @created_at, @updated_at
     )
   `);
 
@@ -106,6 +109,7 @@ export function saveArticleMetadata(article: ArticleMetadata): number {
     markdown_path: article.markdown_path || null,
     status: article.status || 'draft',
     published_at: article.status === 'published' ? now : null,
+    quality_report: article.quality_report || null,
     created_at: now,
     updated_at: now,
   });

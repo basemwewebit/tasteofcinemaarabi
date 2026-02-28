@@ -27,6 +27,48 @@ export interface TranslateRequest {
     movieTitles?: string[];   // Titles to protect from translation
 }
 
+// ── Translation Quality Report types ──
+
+export type PhaseStatus = 'success' | 'failed' | 'skipped';
+
+export interface PhaseReport {
+    status: PhaseStatus;
+    duration_ms: number;
+    tokens_in: number;
+    tokens_out: number;
+    retries: number;
+}
+
+export interface ReviewPhaseReport extends PhaseReport {
+    corrections: number;
+    by_type: Record<string, number>;
+    new_terms: number;
+}
+
+export interface ProofreadPhaseReport extends PhaseReport {
+    polishes: number;
+    by_type: Record<string, number>;
+}
+
+export interface TranslationQualityReport {
+    v: number;
+    ts: string;
+    model: string;
+    chunks: number;
+    phases: {
+        translate: PhaseReport;
+        review: ReviewPhaseReport;
+        proofread: ProofreadPhaseReport;
+    };
+    totals: {
+        duration_ms: number;
+        tokens_in: number;
+        tokens_out: number;
+        corrections: number;
+        new_terms: string[];
+    };
+}
+
 export interface TranslateResponse {
     success: boolean;
     data?: {
@@ -40,6 +82,7 @@ export interface TranslateResponse {
     };
     error?: string;
     details?: string;
+    quality_report?: TranslationQualityReport;
 }
 
 export interface BatchImportRequest {

@@ -213,7 +213,10 @@ export async function runScrapePipeline(jobId: number, targetUrl: string): Promi
             status: 'draft',
             featured_image: localFeaturedImage,
             page_count: 1,
-            scraped_at: formatSqliteDate()
+            scraped_at: formatSqliteDate(),
+            quality_report: translationResult.quality_report
+                ? JSON.stringify(translationResult.quality_report)
+                : undefined,
         });
 
         // 10. Update job status to completed

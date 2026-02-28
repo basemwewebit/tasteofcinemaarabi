@@ -79,6 +79,9 @@ export async function POST(req: Request) {
             author: 'مذاق السينما',
             status: 'draft',
             featured_image: body.featuredImage || undefined,
+            quality_report: translationResult.quality_report
+                ? JSON.stringify(translationResult.quality_report)
+                : undefined,
         });
 
         return NextResponse.json({
@@ -86,7 +89,8 @@ export async function POST(req: Request) {
             data: {
                 articleId,
                 slug: uniqueSlug,
-                title_ar
+                title_ar,
+                quality_report: translationResult.quality_report,
             }
         });
     } catch (err: unknown) {
