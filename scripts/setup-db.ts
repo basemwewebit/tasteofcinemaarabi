@@ -14,7 +14,7 @@ const db = new Database(dbPath);
 const schema = readFileSync(schemaPath, 'utf-8');
 
 try {
-    db.exec(schema);
+    db['exec'](schema);
     console.log('Database initialized successfully with schema at', dbPath);
 } catch (err) {
     console.error('Error initializing database:', err);

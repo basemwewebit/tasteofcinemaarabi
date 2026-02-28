@@ -52,3 +52,10 @@ next-env.d.ts
 /public/images/articles/**
 !/public/images/articles/.gitkeep
 
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+dist/
+*.egg-info/
