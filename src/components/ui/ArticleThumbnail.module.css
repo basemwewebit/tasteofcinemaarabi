@@ -1,0 +1,12 @@
+.thumbnailWrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    margin-bottom: var(--spacing-6);
+}
+
+.thumbnailImage {
+    object-fit: cover;
+}

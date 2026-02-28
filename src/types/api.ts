@@ -11,6 +11,8 @@ export interface ScrapeResponse {
         content: string; // The raw html content
         author: string;
         url: string;
+        featuredImage?: string;   // Absolute URL to article thumbnail
+        movieTitles?: string[];   // Extracted movie title strings
     };
     error?: string;
 }
@@ -19,6 +21,7 @@ export interface TranslateRequest {
     url: string;
     content: string; // The scraped HTML or raw Text
     title: string; // Original english title
+    movieTitles?: string[];   // Titles to protect from translation
 }
 
 export interface TranslateResponse {

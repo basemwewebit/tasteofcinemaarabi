@@ -64,7 +64,8 @@ async function processBatch(batchId: number, urls: string[]) {
             const translationResult = await translateArticle({
                 url,
                 title: scrapeResult.data.title,
-                content: scrapeResult.data.content
+                content: scrapeResult.data.content,
+                movieTitles: scrapeResult.data.movieTitles,
             });
 
             if (!translationResult.success || !translationResult.data) {
@@ -82,7 +83,8 @@ async function processBatch(batchId: number, urls: string[]) {
                 slug: uniqueSlug, title_ar, title_en, excerpt_ar, category,
                 tags: JSON.stringify(tags),
                 source_url: url, markdown_path: mdxPath,
-                author: 'مذاق السينما', status: 'draft'
+                author: 'مذاق السينما', status: 'draft',
+                featured_image: scrapeResult.data.featuredImage || undefined,
             });
 
             incrementBatchSuccess(batchId);

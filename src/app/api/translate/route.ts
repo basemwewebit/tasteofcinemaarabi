@@ -5,9 +5,13 @@ import { saveMarkdownFile } from '@/lib/content/mdx';
 import { ensureUniqueSlug } from '@/lib/content/slugs';
 import { TranslateRequest } from '@/types/api';
 
+interface TranslateRouteBody extends TranslateRequest {
+    featuredImage?: string;
+}
+
 export async function POST(req: Request) {
     try {
-        const body = (await req.json()) as TranslateRequest;
+        const body = (await req.json()) as TranslateRouteBody;
 
         if (!body.url || !body.content || !body.title) {
             return NextResponse.json(
@@ -38,7 +42,11 @@ export async function POST(req: Request) {
         }
 
         // 1. Send to OpenAI for translation
-        const translationResult = await translateArticle({ ...body, url: normalizedSourceUrl });
+        const translationResult = await translateArticle({
+            ...body,
+            url: normalizedSourceUrl,
+            movieTitles: body.movieTitles,
+        });
 
         if (!translationResult.success || !translationResult.data) {
             return NextResponse.json(translationResult, { status: 500 });
@@ -69,7 +77,8 @@ export async function POST(req: Request) {
             source_url: normalizedSourceUrl,
             markdown_path: mdxPath,
             author: 'مذاق السينما',
-            status: 'draft'
+            status: 'draft',
+            featured_image: body.featuredImage || undefined,
         });
 
         return NextResponse.json({
