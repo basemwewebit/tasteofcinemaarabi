@@ -52,6 +52,9 @@ next-env.d.ts
 /public/images/articles/**
 !/public/images/articles/.gitkeep
 
+# Python Bulk Scraper Output
+/scraped/
+
 # Python
 __pycache__/
 *.pyc
