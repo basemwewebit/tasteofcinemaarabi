@@ -29,13 +29,51 @@ export async function processArticleImages(
     const errors: string[] = [];
 
     const baseDir = path.join(process.cwd(), 'public', 'images', 'articles', articleSlug);
+    // Pre-downloaded images from the Python bulk scraper
+    const scrapedImgDir = path.join(process.cwd(), 'scraped', 'images', articleSlug);
+    const scrapedFiles: string[] = fs.existsSync(scrapedImgDir)
+        ? fs.readdirSync(scrapedImgDir)
+        : [];
 
     if (fs.existsSync(baseDir)) {
         fs.rmSync(baseDir, { recursive: true, force: true });
     }
     fs.mkdirSync(baseDir, { recursive: true });
 
+    /**
+     * Try to find a pre-downloaded image in scraped/images/<slug>/ whose
+     * slugified name matches. Returns the full path if found, null otherwise.
+     */
+    function findScrapedFile(slugifiedName: string): string | null {
+        const match = scrapedFiles.find(f => {
+            // Strip leading "XX-" prefix and extension, then compare
+            const nameOnly = f.replace(/^\d+-/, '').replace(/\.[^.]+$/, '');
+            return nameOnly === slugifiedName;
+        });
+        return match ? path.join(scrapedImgDir, match) : null;
+    }
+
+    async function convertAndSave(sourcePath: string, outputFilename: string): Promise<string | null> {
+        try {
+            const outputPath = path.join(baseDir, outputFilename);
+            await sharp(sourcePath).webp({ quality: 60 }).toFile(outputPath);
+            return `/images/articles/${articleSlug}/${outputFilename}`;
+        } catch (error) {
+            errors.push(`Failed to convert ${sourcePath}: ${error instanceof Error ? error.message : String(error)}`);
+            return null;
+        }
+    }
+
     async function downloadAndConvert(url: string, filename: string): Promise<string | null> {
+        // Check scraped cache first
+        const slugifiedName = slugifyFilename(url);
+        const scrapedPath = findScrapedFile(slugifiedName);
+        if (scrapedPath) {
+            console.log(`[imageProcessor] Using scraped image: ${path.basename(scrapedPath)}`);
+            return convertAndSave(scrapedPath, filename);
+        }
+
+        // Fall back to downloading from the web
         try {
             const response = await fetch(url, {
                 headers: {
@@ -64,11 +102,12 @@ export async function processArticleImages(
     }
 
     if (featuredImageUrl) {
+        const isCached = !!findScrapedFile(slugifyFilename(featuredImageUrl));
         const localPath = await downloadAndConvert(featuredImageUrl, '00-thumbnail.webp');
         if (localPath) {
             urlMap[featuredImageUrl] = localPath;
         }
-        if (inlineImageUrls.length > 0) {
+        if (!isCached && inlineImageUrls.length > 0) {
             await sleep(delayMs);
         }
     }
@@ -80,6 +119,7 @@ export async function processArticleImages(
         const url = uniqueInlineUrls[i];
         if (urlMap[url]) continue; // Skip if already processed e.g. same as featured
 
+        const isCached = !!findScrapedFile(slugifyFilename(url));
         const indexStr = String(i + 1).padStart(2, '0');
         const slugifiedName = slugifyFilename(url);
         const filename = `${indexStr}-${slugifiedName}.webp`;
@@ -89,7 +129,7 @@ export async function processArticleImages(
             urlMap[url] = localPath;
         }
 
-        if (i < uniqueInlineUrls.length - 1) {
+        if (!isCached && i < uniqueInlineUrls.length - 1) {
             await sleep(delayMs);
         }
     }

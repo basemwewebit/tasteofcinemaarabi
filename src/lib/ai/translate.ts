@@ -31,7 +31,66 @@ function getAIClient(): OpenAI {
 }
 
 const MAX_TRANSLATION_RETRIES = 3;
-const MAX_CONTENT_CHARS = 22000;
+const MAX_CONTENT_CHARS = 60000;
+
+// ── Image extraction / restoration (pre-/post-translation) ───────────────────
+// Instead of asking the AI to preserve <img> tags, we extract them before
+// sending content to the model and re-inject them afterward.
+
+interface ExtractedImage {
+    placeholder: string;
+    src: string;
+    alt: string;
+}
+
+interface ImageExtractionResult {
+    processed: string;
+    images: ExtractedImage[];
+}
+
+/**
+ * Replace every <img ...> tag in HTML with a simple [IMAGE_N] text marker.
+ * Returns the cleaned content and a map for restoration.
+ */
+export function extractImages(html: string): ImageExtractionResult {
+    const images: ExtractedImage[] = [];
+    let idx = 0;
+    const processed = html.replace(/<img\b[^>]*>/gi, (tag) => {
+        idx += 1;
+        const placeholder = `[IMAGE_${idx}]`;
+        const srcMatch = tag.match(/src=["']([^"']+)["']/);
+        const altMatch = tag.match(/alt=["']([^"']*)["']/);
+        images.push({
+            placeholder,
+            src: srcMatch?.[1] ?? '',
+            alt: altMatch?.[1] ?? '',
+        });
+        return placeholder;
+    });
+    return { processed, images };
+}
+
+/**
+ * Re-inject extracted images back into translated MDX as Markdown image syntax.
+ * Handles cases where the AI drops or shifts [IMAGE_N] markers.
+ */
+export function restoreImages(content: string, images: ExtractedImage[]): string {
+    let result = content;
+    for (const { placeholder, src, alt } of images) {
+        if (!src) {
+            result = result.replace(placeholder, '');
+            continue;
+        }
+        const mdImage = `\n\n![${alt}](${src})\n\n`;
+        if (result.includes(placeholder)) {
+            result = result.replace(placeholder, mdImage);
+        } else {
+            // Marker was dropped by AI — append at end
+            result += mdImage;
+        }
+    }
+    return result;
+}
 
 // ── Placeholder substitution for movie title protection ──
 
@@ -96,13 +155,16 @@ export async function translateArticle(req: TranslateRequest): Promise<Translate
     const safeUrl = req.url?.trim() || '';
     const rawContent = truncateContent(req.content);
 
+    // Extract images BEFORE placeholder insertion so [IMAGE_N] markers stay clean
+    const { processed: contentNoImages, images: extractedImages } = extractImages(rawContent);
+
     // Insert placeholders for movie titles before translation
     const titlePlaceholders = req.movieTitles
         ? insertPlaceholders(safeTitle, req.movieTitles)
         : { processed: safeTitle, map: [] };
     const contentPlaceholders = req.movieTitles
-        ? insertPlaceholders(rawContent, req.movieTitles)
-        : { processed: rawContent, map: [] };
+        ? insertPlaceholders(contentNoImages, req.movieTitles)
+        : { processed: contentNoImages, map: [] };
 
     // Merge both maps (title + content share the same numbering from sorted titles)
     const allMaps = [...titlePlaceholders.map, ...contentPlaceholders.map];
@@ -120,8 +182,13 @@ Follow these rules strictly:
 1. Output valid JSON only, using the structure defined below.
 2. The translation MUST be high quality, culturally adapted for an Arab audience, avoiding literal translation clichés.
 3. Keep markdown formatting (numbered lists, bold, italics) within the content_mdx field.
-4. CRITICAL: Text wrapped in [[TITLE_N]] placeholders are movie titles. Keep every placeholder EXACTLY as-is — do NOT translate, transliterate, or modify them. They will be restored to original titles after translation.
-5. Create a concise, engaging summary for 'excerpt_ar'.
+4. CRITICAL — MOVIE TITLES: Film titles, TV show titles, and proper names of cinematic works MUST remain in their original English (or original language). NEVER translate them. For example "Blue Jasmine" stays "Blue Jasmine", not "الياسمين الأزرق". This applies everywhere: headings, body text, lists.
+5. CRITICAL — PLACEHOLDERS: Text wrapped in [[TITLE_N]] are protected tokens. Rules:
+   a. Keep every [[TITLE_N]] token EXACTLY as written — never translate, modify, or split it.
+   b. NEVER generate new [[...]] patterns yourself. The pattern [[...]] is RESERVED for my system only.
+   c. Do NOT create [[TITLE_12]], [[TITLE_13]], or similar based on article numbering — these are not film placeholders.
+6. CRITICAL — IMAGES: The content contains [IMAGE_N] markers. Keep each [IMAGE_N] marker EXACTLY where it appears in the translated output. Do NOT remove them. Do NOT add new ones.
+7. Create a concise, engaging summary for 'excerpt_ar'.
 
 Input Article Title: "${processedTitle}"
 Input Source URL: "${safeUrl}"
@@ -134,7 +201,7 @@ Respond exclusively with a JSON object holding exactly these keys:
   "title_ar": "Arabic Title Here",
   "title_en": "English Title if kept, or same as original",
   "excerpt_ar": "Short Arabic summary (max 3 sentences)",
-  "content_mdx": "Full translated article content in MDX format",
+  "content_mdx": "Full translated article content in MDX format (preserve [IMAGE_N] markers)",
   "category": "Suggested category slug (e.g., lists, reviews, retrospectives)",
   "tags": ["tag1", "tag2"],
   "slug": "url-friendly-english-or-transliterated-slug"
@@ -182,10 +249,20 @@ Respond exclusively with a JSON object holding exactly these keys:
 
             // Restore movie title placeholders in translated output
             const restoredTitleAr = restorePlaceholders(parsedData.title_ar, uniqueMap);
-            const restoredContent = restorePlaceholders(parsedData.content_mdx, uniqueMap);
+            const restoredContentRaw = restorePlaceholders(parsedData.content_mdx, uniqueMap);
             const restoredExcerpt = parsedData.excerpt_ar
                 ? restorePlaceholders(parsedData.excerpt_ar, uniqueMap)
                 : '';
+
+            // Re-inject images that were extracted before translation
+            const restoredContent = restoreImages(restoredContentRaw, extractedImages);
+
+            // Safety: strip any stray [[TITLE_N]] the AI may have hallucinated
+            // (keep only ones that are valid placeholders in our map)
+            const validPlaceholders = new Set(uniqueMap.map(m => m.placeholder));
+            const cleanedContent = restoredContent.replace(/\[\[TITLE_\d+\]\]/g, (match) =>
+                validPlaceholders.has(match) ? match : ''
+            );
 
             return {
                 success: true,
@@ -193,7 +270,7 @@ Respond exclusively with a JSON object holding exactly these keys:
                     title_ar: restoredTitleAr,
                     title_en: parsedData.title_en || safeTitle,
                     excerpt_ar: restoredExcerpt,
-                    content_mdx: restoredContent,
+                    content_mdx: cleanedContent,
                     category: parsedData.category || 'uncategorized',
                     tags: Array.isArray(parsedData.tags) ? parsedData.tags : [],
                     slug: parsedData.slug || safeTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-'),

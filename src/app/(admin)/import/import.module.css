@@ -96,3 +96,163 @@
 .metaDate {
   text-align: right;
 }
+
+/* ── Active Job Progress Cards ───────────────────────────────────────────── */
+
+.activeSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.activeJobCard {
+  background-color: var(--bg-surface);
+  border: 2px solid var(--accent-color);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-4) var(--spacing-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  animation: cardFadeIn 0.3s ease;
+}
+
+.activeJobCard.done {
+  border-color: var(--color-success);
+  opacity: 0.85;
+}
+
+.activeJobCard.failed {
+  border-color: var(--color-danger);
+}
+
+@keyframes cardFadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.jobCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.jobCardUrl {
+  direction: ltr;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 480px;
+}
+
+.jobCardStage {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-color);
+  min-width: max-content;
+}
+
+.jobCardStage.stageDone  { color: var(--color-success); }
+.jobCardStage.stageFail  { color: var(--color-danger); }
+
+.progressTrack {
+  width: 100%;
+  height: 10px;
+  background-color: var(--border-color);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progressBar {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent-color), #f0c040);
+  transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.progressBar.barDone { background: linear-gradient(90deg, var(--color-success), #4ade80); }
+.progressBar.barFail { background: var(--color-danger); }
+
+.stageSteps {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.stepDot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  opacity: 0.45;
+  transition: opacity 0.3s;
+}
+
+.stepDot.active   { opacity: 1; color: var(--accent-color); font-weight: 600; }
+.stepDot.complete { opacity: 0.9; color: var(--color-success); }
+
+.stepDotCircle {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--border-color);
+}
+
+.stepDot.active .stepDotCircle   { background-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(201,168,76,0.3); }
+.stepDot.complete .stepDotCircle { background-color: var(--color-success); }
+
+.jobCardActions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  font-size: 0.82rem;
+}
+
+.viewArticleLink {
+  color: var(--accent-color);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ── Toast Notifications ─────────────────────────────────────────────────── */
+
+.toastContainer {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 1.5rem;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--spacing-2);
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: all;
+  padding: 0.8rem 1.2rem;
+  border-radius: var(--border-radius-lg);
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #fff;
+  max-width: 340px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  animation: toastIn 0.35s ease, toastOut 0.4s ease 4.6s forwards;
+  cursor: pointer;
+  line-height: 1.5;
+}
+
+.toast.success { background-color: #1a6f3a; border-left: 4px solid #4ade80; }
+.toast.error   { background-color: #7f1d1d; border-left: 4px solid #f87171; }
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toastOut {
+  from { opacity: 1; }
+  to   { opacity: 0; pointer-events: none; }
+}
