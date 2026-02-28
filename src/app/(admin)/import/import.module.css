@@ -73,7 +73,26 @@
 .batchStatus {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--spacing-4);
   font-size: 0.9rem;
   color: var(--text-muted);
+}
+
+.batchMeta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.metaUrl {
+  direction: ltr;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.metaDate {
+  text-align: right;
 }

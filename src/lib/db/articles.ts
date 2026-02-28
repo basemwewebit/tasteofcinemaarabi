@@ -52,6 +52,13 @@ export function getArticleBySlug(slug: string): ArticleMetadata | null {
   return result ? (result as ArticleMetadata) : null;
 }
 
+export function getArticleBySourceUrl(sourceUrl: string): ArticleMetadata | null {
+  const db = getDb();
+  const stmt = db.prepare('SELECT * FROM articles WHERE source_url = ? ORDER BY id DESC LIMIT 1');
+  const result = stmt.get(sourceUrl);
+  return result ? (result as ArticleMetadata) : null;
+}
+
 export function getAllArticles(): ArticleMetadata[] {
   const db = getDb();
   const stmt = db.prepare('SELECT * FROM articles ORDER BY created_at DESC');

@@ -100,3 +100,23 @@
   margin: 0 auto;
   padding: 0 var(--spacing-4);
 }
+
+.emptyState {
+  margin: var(--spacing-10) 0;
+  padding: var(--spacing-8);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  background-color: var(--bg-surface);
+  text-align: center;
+}
+
+.emptyTitle {
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  margin: 0 0 var(--spacing-3) 0;
+}
+
+.emptyText {
+  color: var(--text-muted);
+  margin: 0;
+}

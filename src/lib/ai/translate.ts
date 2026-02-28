@@ -2,17 +2,30 @@
 import OpenAI from 'openai';
 import { TranslateRequest, TranslateResponse } from '@/types/api';
 
-let openaiClient: OpenAI | null = null;
-function getOpenAI(): OpenAI {
-    if (!openaiClient) {
-        openaiClient = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY || 'mock-key-for-build',
-        });
+function getAIClient(): OpenAI {
+    const apiKey = process.env.OPENROUTER_API_KEY || (process.env.NODE_ENV === 'test' ? 'test-key' : '');
+    if (!apiKey) {
+        throw new Error('OPENROUTER_API_KEY is not configured');
     }
-    return openaiClient;
+
+    return new OpenAI({
+        baseURL: 'https://openrouter.ai/api/v1',
+        apiKey,
+        defaultHeaders: {
+            'HTTP-Referer': 'https://mazaqalsinema.com',
+            'X-Title': encodeURIComponent('مذاق السينما'),
+        },
+    });
 }
 
+const MAX_TRANSLATION_RETRIES = 3;
+const MAX_CONTENT_CHARS = 22000;
+
 export async function translateArticle(req: TranslateRequest): Promise<TranslateResponse> {
+    const safeTitle = req.title?.trim() || 'Untitled';
+    const safeUrl = req.url?.trim() || '';
+    const content = truncateContent(req.content);
+
     const prompt = `
 You are an expert cinema editor and translator. Your task is to translate an English cinema article into Arabic.
 Follow these rules strictly:
@@ -22,11 +35,11 @@ Follow these rules strictly:
 4. Transliterate movie titles or directors names appropriately (e.g., "كريستوفر نولان"). Keep the original English name in parentheses on its first mention.
 5. Create a concise, engaging summary for 'excerpt_ar'.
 
-Input Article Title: "${req.title}"
-Input Source URL: "${req.url}"
+Input Article Title: "${safeTitle}"
+Input Source URL: "${safeUrl}"
 
 Original Content Extracted:
-${req.content}
+${content}
 
 Respond exclusively with a JSON object holding exactly these keys:
 {
@@ -40,43 +53,85 @@ Respond exclusively with a JSON object holding exactly these keys:
 }
 `;
 
-    try {
-        const openai = getOpenAI();
-        const aiResponse = await openai.chat.completions.create({
-            model: 'gpt-4o',
-            messages: [
-                { role: 'system', content: 'You are a professional Arabic cinema editor.' },
-                { role: 'user', content: prompt }
-            ],
-            response_format: { type: 'json_object' },
-            temperature: 0.3,
-        });
+    const ai = getAIClient();
+    let lastError: Error | null = null;
 
-        const resultText = aiResponse.choices[0].message.content;
-        if (!resultText) {
-            throw new Error('Empty response from OpenAI');
-        }
+    for (let attempt = 1; attempt <= MAX_TRANSLATION_RETRIES; attempt += 1) {
+        try {
+            const aiResponse = await ai.chat.completions.create({
+                model: process.env.OPENROUTER_MODEL ?? 'openai/gpt-4o',
+                messages: [
+                    { role: 'system', content: 'You are a professional Arabic cinema editor.' },
+                    { role: 'user', content: prompt }
+                ],
+                response_format: { type: 'json_object' },
+                temperature: 0.3,
+            });
 
-        const parsedData = JSON.parse(resultText);
-
-        return {
-            success: true,
-            data: {
-                title_ar: parsedData.title_ar,
-                title_en: parsedData.title_en || req.title,
-                excerpt_ar: parsedData.excerpt_ar,
-                content_mdx: parsedData.content_mdx,
-                category: parsedData.category || 'uncategorized',
-                tags: parsedData.tags || [],
-                slug: parsedData.slug || req.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+            const resultText = aiResponse.choices[0].message.content;
+            if (!resultText) {
+                throw new Error('Empty response from OpenRouter');
             }
-        };
-    } catch (error: unknown) {
-        console.error('Translation error:', error);
-        return {
-            success: false,
-            error: 'Failed to translate article',
-            details: error instanceof Error ? error.message : 'Unknown error'
-        };
+
+            const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) {
+                throw new Error('Failed to parse JSON from AI response');
+            }
+
+            const parsedData = JSON.parse(jsonMatch[0]) as {
+                title_ar?: string;
+                title_en?: string;
+                excerpt_ar?: string;
+                content_mdx?: string;
+                category?: string;
+                tags?: string[];
+                slug?: string;
+            };
+
+            if (!parsedData.content_mdx || !parsedData.title_ar) {
+                throw new Error('AI response missing required keys (title_ar/content_mdx)');
+            }
+
+            return {
+                success: true,
+                data: {
+                    title_ar: parsedData.title_ar,
+                    title_en: parsedData.title_en || safeTitle,
+                    excerpt_ar: parsedData.excerpt_ar || '',
+                    content_mdx: parsedData.content_mdx,
+                    category: parsedData.category || 'uncategorized',
+                    tags: Array.isArray(parsedData.tags) ? parsedData.tags : [],
+                    slug: parsedData.slug || safeTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+                }
+            };
+        } catch (error: unknown) {
+            lastError = error instanceof Error ? error : new Error('Unknown translation error');
+            console.error(`Translation attempt ${attempt} failed:`, lastError.message);
+            if (attempt < MAX_TRANSLATION_RETRIES) {
+                await sleep(700 * attempt);
+            }
+        }
     }
+
+    return {
+        success: false,
+        error: 'Failed to translate article',
+        details: lastError?.message || 'Unknown error'
+    };
+}
+
+function truncateContent(content: string): string {
+    if (!content) {
+        return '';
+    }
+
+    if (content.length <= MAX_CONTENT_CHARS) {
+        return content;
+    }
+
+    return `${content.slice(0, MAX_CONTENT_CHARS)}\n\n[Content truncated for model limits]`;
+}
+
+function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }

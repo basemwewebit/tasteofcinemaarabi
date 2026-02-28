@@ -93,8 +93,7 @@ END;
 
 -- Update sync trigger
 CREATE TRIGGER IF NOT EXISTS articles_au AFTER UPDATE ON articles BEGIN
-  INSERT INTO search_articles(search_articles, rowid, title_ar, excerpt_ar, content_rowid) 
-  VALUES ('delete', old.id, old.title_ar, old.excerpt_ar, old.id);
+  DELETE FROM search_articles WHERE rowid = old.id;
   INSERT INTO search_articles(rowid, title_ar, excerpt_ar, content_rowid) 
   VALUES (new.id, new.title_ar, new.excerpt_ar, new.id);
 END;
