@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { getApiErrorMessage, parseResponseJson } from '@/lib/http/response';
 import { ArticleMetadata } from '@/types/article';
 import styles from './articles.module.css';
 
@@ -14,8 +15,12 @@ export default function AdminArticlesPage() {
     const fetchArticles = async () => {
         try {
             const res = await fetch('/api/articles');
-            const data = await res.json();
-            if (data.success) setArticles(data.data);
+            const { data, rawText } = await parseResponseJson<{ success?: boolean; data?: ArticleMetadata[] }>(res);
+            if (res.ok && data?.success && Array.isArray(data.data)) {
+                setArticles(data.data);
+            } else {
+                console.error(getApiErrorMessage(res, data, rawText));
+            }
         } catch (err) {
             console.error(err);
         } finally {
@@ -32,11 +37,11 @@ export default function AdminArticlesPage() {
 
         try {
             const res = await fetch(`/api/articles/${id}`, { method: 'DELETE' });
-            const data = await res.json();
-            if (data.success) {
+            const { data, rawText } = await parseResponseJson<{ success?: boolean; error?: string }>(res);
+            if (res.ok && data?.success) {
                 setArticles(articles.filter(a => a.id !== id));
             } else {
-                alert(data.error);
+                alert(getApiErrorMessage(res, data, rawText));
             }
         } catch (err) {
             console.error(err);

@@ -73,19 +73,21 @@
 .content {
   font-family: var(--font-noto-naskh), serif;
   font-size: clamp(1rem, 2.5vw, 1.125rem);
-  line-height: 1.9;
+  line-height: 2;
   color: var(--text-color);
   direction: rtl;
   text-align: right;
+  text-wrap: pretty;
 }
 
 .content h2 {
   font-family: var(--font-serif);
-  font-size: 1.75rem;
-  margin-top: var(--spacing-8);
-  margin-bottom: var(--spacing-4);
+  font-size: 1.8rem;
+  margin-top: var(--spacing-10);
+  margin-bottom: var(--spacing-3);
   color: var(--accent-hover);
   padding-right: var(--spacing-4);
+  line-height: 1.45;
   border-right: 4px solid var(--accent-color);
 }
 
@@ -99,6 +101,21 @@
 
 .content p {
   margin-bottom: var(--spacing-5);
+  line-height: 2;
+}
+
+.content img {
+  width: min(100%, 640px);
+  height: auto;
+  display: block;
+  margin: var(--spacing-6) auto;
+  border-radius: var(--border-radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+.content h2 + img,
+.content h2 + p img {
+  margin-top: var(--spacing-3);
 }
 
 .content figure {
@@ -215,6 +232,7 @@
 
   .content h2 {
     font-size: 1.5rem;
+    margin-top: var(--spacing-8);
   }
 
   .meta {

@@ -46,7 +46,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     };
 
     const publishDate = meta.published_at
-        ? format(new Date(meta.published_at), 'dd MMMM yyyy', { locale: ar })
+        ? toLatinDigits(format(new Date(meta.published_at), 'dd MMMM yyyy', { locale: ar }))
         : 'غير محدد';
 
     return (
@@ -85,7 +85,16 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             <AdSlot slot="1234123412" variant="horizontal" />
 
             <div className={styles.content}>
-                <MDXRemote source={fallbackMdx} />
+                <MDXRemote
+                    source={fallbackMdx}
+                    components={{
+                        img: ({ alt, ...props }) => {
+                            const safeAlt = typeof alt === 'string' ? alt : '';
+                            // eslint-disable-next-line @next/next/no-img-element
+                            return <img {...props} alt={safeAlt} loading="lazy" decoding="async" />;
+                        },
+                    }}
+                />
             </div>
 
             {/* Secondary Ad Slot (Bottom of content) */}
@@ -105,4 +114,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             </div>
         </article>
     );
+}
+
+function toLatinDigits(value: string): string {
+    return value.replace(/[٠-٩]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)));
 }

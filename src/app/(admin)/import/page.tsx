@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { getApiErrorMessage, parseResponseJson } from '@/lib/http/response';
 import styles from './import.module.css';
 
 interface Job {
@@ -112,8 +113,11 @@ export default function AdminImportPage() {
     const pollJob = useCallback(async (jobId: number) => {
         try {
             const res = await fetch(`/api/scrape/${jobId}`);
-            if (!res.ok) return;
-            const data: Job = await res.json();
+            const { data, rawText } = await parseResponseJson<Job>(res);
+            if (!res.ok || !data) {
+                console.error(getApiErrorMessage(res, data, rawText, 'Poll failed'));
+                return;
+            }
 
             setActiveJobs(prev => prev.map(aj => {
                 if (aj.jobId !== jobId) return aj;
@@ -161,16 +165,18 @@ export default function AdminImportPage() {
     const fetchSettings = async () => {
         try {
             const res = await fetch('/api/settings');
-            const data = await res.json();
-            if (data.scrape_delay_seconds !== undefined) setScrapeDelay(data.scrape_delay_seconds);
+            const { data } = await parseResponseJson<{ scrape_delay_seconds?: number }>(res);
+            if (res.ok && data?.scrape_delay_seconds !== undefined) {
+                setScrapeDelay(data.scrape_delay_seconds);
+            }
         } catch { /* ignore */ }
     };
 
     const fetchJobs = async () => {
         try {
             const res = await fetch('/api/scrape?limit=20&offset=0');
-            const data = await res.json();
-            if (data.success && data.jobs) setJobs(data.jobs);
+            const { data } = await parseResponseJson<{ success?: boolean; jobs?: Job[] }>(res);
+            if (res.ok && data?.success && data.jobs) setJobs(data.jobs);
         } catch { /* ignore */ }
     };
 
@@ -208,14 +214,15 @@ export default function AdminImportPage() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ url }),
                 });
-                const data = await res.json();
-                if (data.jobId) {
+                const { data, rawText } = await parseResponseJson<{ jobId?: number; error?: string }>(res);
+                const jobId = data?.jobId;
+                if (res.ok && typeof jobId === 'number') {
                     setActiveJobs(prev => [
                         ...prev,
-                        { jobId: data.jobId, url, status: 'pending', articleId: null, errorLog: null, dismissed: false },
+                        { jobId, url, status: 'pending', articleId: null, errorLog: null, dismissed: false },
                     ]);
                 } else {
-                    setError(data.error ?? 'خطأ غير معروف');
+                    setError(getApiErrorMessage(res, data, rawText, 'خطأ غير معروف'));
                 }
             }
             setUrlsInput('');

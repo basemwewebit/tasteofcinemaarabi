@@ -3,12 +3,17 @@ import {
     translateArticle,
     insertPlaceholders,
     restorePlaceholders,
-    toEasternArabicNumerals,
+    extractImagePlaceholders,
+    restoreImagePlaceholders,
+    injectImagesAfterNumberedHeadings,
+    promoteNumberedItemsToH2,
+    toLatinNumerals,
     applyBidiIsolation,
     formatArabicQuotationMarks,
     cleanInvisibleChars,
     normalizeWhitespace,
     normalizeBlankLines,
+    normalizeHtmlEntities,
     buildQualityReport,
 } from '@/lib/ai/translate';
 import { buildPhase4SystemMessage } from '@/lib/ai/prompts/phase4-polish';
@@ -105,6 +110,7 @@ vi.mock('fs', async () => {
     const actual = await vi.importActual<typeof import('fs')>('fs');
     return {
         ...actual,
+        existsSync: actual.existsSync,
         default: {
             ...actual,
             readFileSync: vi.fn().mockImplementation((filePath: string, encoding?: string) => {
@@ -213,6 +219,30 @@ describe('3-Phase Translation Pipeline', () => {
         const report = result.quality_report!;
         expect(report.totals.tokens_in).toBeGreaterThan(0);
         expect(report.totals.tokens_out).toBeGreaterThan(0);
+    });
+
+    it('should force Latin digits in final content', async () => {
+        const result = await translateArticle({
+            url: 'http://test.com',
+            title: 'Test',
+            content: '<p>Content.</p>',
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.data?.content_mdx).toContain('1.');
+        expect(result.data?.content_mdx).not.toContain('١.');
+    });
+
+    it('should re-insert dropped image placeholders after numbered headings', async () => {
+        const result = await translateArticle({
+            url: 'http://test.com',
+            title: 'Test',
+            content: '<p><img src="/demo.webp" alt="demo" /></p><p>Content.</p>',
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.data?.content_mdx).toContain('/demo.webp');
+        expect(result.data?.content_mdx).toMatch(/#\s*1\.\s*العراب[\s\S]*<img/);
     });
 });
 
@@ -341,42 +371,57 @@ describe('restorePlaceholders', () => {
 // Post-processing functions
 // ═══════════════════════════════════════════════════════════════════════════
 
-describe('toEasternArabicNumerals', () => {
-    it('should convert Western digits to Eastern Arabic', () => {
-        expect(toEasternArabicNumerals('0123456789')).toBe('٠١٢٣٤٥٦٧٨٩');
+describe('extractImagePlaceholders', () => {
+    it('should replace img tags with [IMAGE_N] placeholders in order', () => {
+        const input = '<p>مقدمة</p><img src="/1.webp" /><p>نص</p><img src="/2.webp" />';
+        const result = extractImagePlaceholders(input);
+
+        expect(result.processed).toContain('[IMAGE_1]');
+        expect(result.processed).toContain('[IMAGE_2]');
+        expect(result.images).toHaveLength(2);
+        expect(result.images[0]).toContain('/1.webp');
+        expect(result.images[1]).toContain('/2.webp');
+    });
+});
+
+describe('restoreImagePlaceholders', () => {
+    it('should restore placeholders and track missing images', () => {
+        const text = '## 10. عنوان\n[IMAGE_1]\n## 9. عنوان';
+        const images = ['<img src="/1.webp" />', '<img src="/2.webp" />'];
+        const restored = restoreImagePlaceholders(text, images);
+
+        expect(restored.content).toContain('<img src="/1.webp" />');
+        expect(restored.missingImages).toEqual(['<img src="/2.webp" />']);
+    });
+});
+
+describe('injectImagesAfterNumberedHeadings', () => {
+    it('should inject missing images after numbered headings', () => {
+        const text = '10. The Shrouds\nفقرة\n9. Rabbit Trap\nفقرة';
+        const output = injectImagesAfterNumberedHeadings(text, ['<img src="/1.webp" />', '<img src="/2.webp" />']);
+        expect(output).toContain('10. The Shrouds\n\n<img src="/1.webp" />');
+        expect(output).toContain('9. Rabbit Trap\n\n<img src="/2.webp" />');
+    });
+});
+
+describe('promoteNumberedItemsToH2', () => {
+    it('should promote plain numbered lines to h2', () => {
+        const input = '10. The Shrouds\nفقرة';
+        expect(promoteNumberedItemsToH2(input)).toBe('## 10. The Shrouds\nفقرة');
+    });
+});
+
+describe('toLatinNumerals', () => {
+    it('should convert Eastern Arabic digits to Latin', () => {
+        expect(toLatinNumerals('٠١٢٣٤٥٦٧٨٩')).toBe('0123456789');
     });
 
-    it('should not modify text without digits', () => {
-        const text = 'مرحباً بالعالم';
-        expect(toEasternArabicNumerals(text)).toBe(text);
+    it('should keep Latin digits as-is', () => {
+        expect(toLatinNumerals('2025')).toBe('2025');
     });
 
-    it('should preserve [IMAGE_N] markers', () => {
-        const text = 'قبل [IMAGE_3] بعد';
-        expect(toEasternArabicNumerals(text)).toBe('قبل [IMAGE_3] بعد');
-    });
-
-    it('should preserve [[TITLE_N]] markers', () => {
-        const text = 'فيلم [[TITLE_12]] رائع';
-        expect(toEasternArabicNumerals(text)).toBe('فيلم [[TITLE_12]] رائع');
-    });
-
-    it('should preserve URLs', () => {
-        const text = 'رابط https://example.com/page/42 هنا';
-        expect(toEasternArabicNumerals(text)).toBe('رابط https://example.com/page/42 هنا');
-    });
-
-    it('should preserve inline code', () => {
-        const text = 'الكود `x = 5` هنا';
-        expect(toEasternArabicNumerals(text)).toBe('الكود `x = 5` هنا');
-    });
-
-    it('should convert digits outside protected zones', () => {
-        const text = 'عدد 42 فيلم و [IMAGE_1] و 7 أخرى';
-        const result = toEasternArabicNumerals(text);
-        expect(result).toContain('٤٢');
-        expect(result).toContain('[IMAGE_1]');
-        expect(result).toContain('٧');
+    it('should convert mixed text digits', () => {
+        expect(toLatinNumerals('صدر عام ٢٠٢٥ وحقق ٣٠٠ مليون')).toBe('صدر عام 2025 وحقق 300 مليون');
     });
 });
 
@@ -479,17 +524,24 @@ describe('normalizeBlankLines', () => {
     });
 });
 
+describe('normalizeHtmlEntities', () => {
+    it('should normalize broken ampersand entities', () => {
+        expect(normalizeHtmlEntities('Hallow Road &amp;; It Ends')).toBe('Hallow Road & It Ends');
+        expect(normalizeHtmlEntities('A &amp; B')).toBe('A & B');
+    });
+});
+
 describe('Full Post-processing Pipeline Integration', () => {
     it('should clean all unwanted characters and format correctly', () => {
         const input = 'فيلم\u200b "The Godfather"\u00a0رائع\u2019   \n\n\n\n10 من 10';
         let result = cleanInvisibleChars(input);
         result = normalizeWhitespace(result);
         result = normalizeBlankLines(result);
-        result = toEasternArabicNumerals(result);
-        result = applyBidiIsolation(result);
+        result = normalizeHtmlEntities(result);
+        result = toLatinNumerals(result);
         result = formatArabicQuotationMarks(result);
 
-        expect(result).toBe('فيلم «The Godfather» رائع \n\n١٠ من ١٠');
+        expect(result).toBe('فيلم «The Godfather» رائع \n\n10 من 10');
     });
 });
 

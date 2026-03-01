@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
+import { getApiErrorMessage, parseResponseJson } from '@/lib/http/response';
 import { Article } from '@/types/article';
 import styles from './edit.module.css';
 
@@ -19,11 +20,11 @@ export default function ArticleEditPage({ params }: { params: Promise<{ id: stri
         async function fetchArticle() {
             try {
                 const res = await fetch(`/api/articles/${id}`);
-                const data = await res.json();
-                if (data.success) {
+                const { data, rawText } = await parseResponseJson<{ success?: boolean; data?: Partial<Article>; error?: string }>(res);
+                if (res.ok && data?.success && data.data) {
                     setFormData(data.data);
                 } else {
-                    setError(data.error);
+                    setError(getApiErrorMessage(res, data, rawText, 'Error fetching article'));
                 }
             } catch (err: unknown) {
                 setError(err instanceof Error ? err.message : 'Error fetching article');
@@ -50,14 +51,14 @@ export default function ArticleEditPage({ params }: { params: Promise<{ id: stri
                 body: JSON.stringify(payload)
             });
 
-            const data = await res.json();
-            if (data.success) {
+            const { data, rawText } = await parseResponseJson<{ success?: boolean; error?: string }>(res);
+            if (res.ok && data?.success) {
                 alert('تم الحفظ بنجاح');
                 if (status === 'published') {
                     router.push('/articles');
                 }
             } else {
-                setError(data.error);
+                setError(getApiErrorMessage(res, data, rawText, 'Error saving article'));
             }
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : 'Error saving article');

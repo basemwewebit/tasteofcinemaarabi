@@ -39,8 +39,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ar" dir="rtl">
-      <body className={`${amiri.variable} ${tajawal.variable} ${notoNaskh.variable}`}>
+    <html lang="ar" dir="rtl" suppressHydrationWarning>
+      <body suppressHydrationWarning className={`${amiri.variable} ${tajawal.variable} ${notoNaskh.variable}`}>
         {children}
       </body>
     </html>

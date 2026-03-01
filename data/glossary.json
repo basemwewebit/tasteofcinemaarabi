@@ -1,6 +1,6 @@
 {
-  "version": 4,
-  "updated_at": "2026-03-01T06:39:07.420Z",
+  "version": 5,
+  "updated_at": "2026-03-01T07:02:24.580Z",
   "entries": [
     {
       "en": "film noir",
@@ -1267,6 +1267,30 @@
       "en": "unalloyed glimpse",
       "ar": "لمحة مجردة / نظرة غير مغلفة",
       "context": "cinematic realism",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "procedural thriller",
+      "ar": "فيلم إثارة إجرائي",
+      "context": "genre",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "period-piece",
+      "ar": "فيلم تاريخي",
+      "context": "genre",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "tonal slipperiness",
+      "ar": "انزلاق نبري",
+      "context": "craft",
       "added_at": "2026-03-01",
       "source": "ai_discovered",
       "approved": false

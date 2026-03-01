@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { getApiErrorMessage, parseResponseJson } from "@/lib/http/response";
 import styles from "./login.module.css";
 
 function AdminLoginForm() {
@@ -26,13 +27,13 @@ function AdminLoginForm() {
                 body: JSON.stringify({ username, password }),
             });
 
-            const data = await res.json();
+            const { data, rawText } = await parseResponseJson<{ ok?: boolean; error?: string }>(res);
 
-            if (res.ok && data.ok) {
+            if (res.ok && data?.ok) {
                 const redirectUrl = searchParams.get("redirect") ?? "/articles";
                 router.push(redirectUrl);
             } else {
-                setErrorMsg(data.error || "حدث خطأ غير متوقع");
+                setErrorMsg(getApiErrorMessage(res, data, rawText));
                 setIsLoading(false);
             }
         } catch {

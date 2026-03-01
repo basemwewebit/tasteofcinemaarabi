@@ -10,7 +10,8 @@
     "db:migrate": "npx tsx scripts/setup-db.ts",
     "db:migrate:fresh": "npx tsx scripts/db-migrate-fresh.ts",
     "db:seed": "npx tsx scripts/db-seed.ts",
-    "db:migrate:status": "npx tsx scripts/db-migrate-status.ts"
+    "db:migrate:status": "npx tsx scripts/db-migrate-status.ts",
+    "content:backfill": "./node_modules/.bin/tsc scripts/backfill-mdx-format.ts --outDir /tmp/toca-backfill --module commonjs --target es2020 --esModuleInterop --skipLibCheck && node /tmp/toca-backfill/backfill-mdx-format.js"
   },
   "dependencies": {
     "@types/better-sqlite3": "^7.6.13",

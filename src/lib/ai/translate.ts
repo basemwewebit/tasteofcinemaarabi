@@ -6,7 +6,7 @@ import { buildPhase1SystemMessage, buildPhase1UserMessage, Phase1Output } from '
 import { buildPhase2SystemMessage, buildPhase2UserMessage, BannedPattern, Phase2Output, Phase2CorrectionItem } from './prompts/phase2-review';
 import { buildPhase3SystemMessage, buildPhase3UserMessage, Phase3Output } from './prompts/phase3-proofread';
 import { buildPhase4SystemMessage, buildPhase4UserMessage, Phase4Output } from './prompts/phase4-polish';
-import fs from 'fs';
+import * as fs from 'fs';
 import path from 'path';
 
 // ── Placeholder types ──
@@ -19,6 +19,16 @@ export interface PlaceholderMap {
 export interface PlaceholderResult {
     processed: string;
     map: PlaceholderMap[];
+}
+
+export interface ImagePlaceholderResult {
+    processed: string;
+    images: string[];
+}
+
+export interface ImageRestoreResult {
+    content: string;
+    missingImages: string[];
 }
 
 function getAIClient(): OpenAI {
@@ -45,7 +55,7 @@ const BANNED_PATTERNS_PATH = path.join(process.cwd(), 'data', 'banned-patterns.j
 export function loadProtectedTerms(): string[] {
     try {
         const termsPath = path.join(process.cwd(), 'data', 'protected-terms.json');
-        if (fs.existsSync(termsPath)) {
+        if (typeof fs.existsSync === 'function' && fs.existsSync(termsPath)) {
             const raw = fs.readFileSync(termsPath, 'utf-8');
             const data = JSON.parse(raw);
             return Array.isArray(data.terms) ? data.terms : [];
@@ -57,33 +67,35 @@ export function loadProtectedTerms(): string[] {
 }
 
 /**
- * Replace every HTML/JSX tag with a simple [TAG_N] text marker.
- * This prevents the AI from mangling attributes like style, src, or class.
+ * Replace image tags with stable [IMAGE_N] placeholders before translation.
+ * We only extract <img> tags (not all tags) to avoid destroying document structure.
  */
-export function extractTags(content: string): { processed: string; tags: string[] } {
-    const tags: string[] = [];
-    const processed = content.replace(/<[^>]+>/gi, (tag) => {
-        tags.push(tag);
-        return `[TAG_${tags.length}]`;
+export function extractImagePlaceholders(content: string): ImagePlaceholderResult {
+    const images: string[] = [];
+    const processed = content.replace(/<img\b[^>]*>(?:<\/img>)?/gi, (imgTag) => {
+        images.push(imgTag);
+        return `[IMAGE_${images.length}]`;
     });
-    return { processed, tags };
+    return { processed, images };
 }
 
 /**
- * Re-inject extracted tags back into translation.
+ * Restore [IMAGE_N] placeholders. Missing images are returned for fallback placement.
  */
-export function restoreTags(content: string, tags: string[]): string {
+export function restoreImagePlaceholders(content: string, images: string[]): ImageRestoreResult {
     let result = content;
-    tags.forEach((tag, i) => {
-        const placeholder = `[TAG_${i + 1}]`;
+    const missingImages: string[] = [];
+
+    images.forEach((imgTag, i) => {
+        const placeholder = `[IMAGE_${i + 1}]`;
         if (result.includes(placeholder)) {
-            result = result.replace(placeholder, tag);
+            result = result.replace(placeholder, imgTag);
         } else {
-            // If the AI dropped the tag, append it at the end to avoid data loss
-            result += `\n${tag}`;
+            missingImages.push(imgTag);
         }
     });
-    return result;
+
+    return { content: result, missingImages };
 }
 
 // ── Placeholder substitution for movie title protection ──
@@ -149,16 +161,16 @@ export async function translateArticle(req: TranslateRequest): Promise<Translate
     const safeUrl = req.url?.trim() || '';
     const rawContent = req.content || '';
 
-    // Extract tags BEFORE placeholder insertion so tags stay untouched by AI
-    const { processed: contentNoTags, tags: extractedTags } = extractTags(rawContent);
+    // Extract images before translation and replace them with [IMAGE_N] placeholders.
+    const { processed: contentNoImages, images: extractedImages } = extractImagePlaceholders(rawContent);
 
     // Insert placeholders for movie titles before translation
     const titlePlaceholders = req.movieTitles
         ? insertPlaceholders(safeTitle, req.movieTitles)
         : { processed: safeTitle, map: [] };
     const contentPlaceholders = req.movieTitles
-        ? insertPlaceholders(contentNoTags, req.movieTitles)
-        : { processed: contentNoTags, map: [] };
+        ? insertPlaceholders(contentNoImages, req.movieTitles)
+        : { processed: contentNoImages, map: [] };
 
     // Merge both maps (title + content share the same numbering from sorted titles)
     const allMaps = [...titlePlaceholders.map, ...contentPlaceholders.map];
@@ -410,27 +422,30 @@ export async function translateArticle(req: TranslateRequest): Promise<Translate
             ? restorePlaceholders(aggregatedTitle!.excerpt_ar, uniqueMap)
             : '';
 
-        // Re-inject tags
-        const restoredContent = restoreTags(restoredContentRaw, extractedTags);
+        // Re-inject image tags
+        const { content: restoredContentWithImages, missingImages } = restoreImagePlaceholders(restoredContentRaw, extractedImages);
 
         // Safety: strip any stray placeholders the AI may have hallucinated
         const validTitlePlaceholders = new Set(uniqueMap.map(m => m.placeholder));
-        let cleanedContent = restoredContent.replace(/\[\[TITLE_\d+\]\]/g, (match) =>
+        let cleanedContent = restoredContentWithImages.replace(/\[\[TITLE_\d+\]\]/g, (match) =>
             validTitlePlaceholders.has(match) ? match : ''
         );
 
-        // Clean up halluncinated [TAG_N] placeholders
-        const validTagPlaceholders = new Set(extractedTags.map((_, i) => `[TAG_${i + 1}]`));
-        cleanedContent = cleanedContent.replace(/\[TAG_\d+\]/g, (match) =>
-            validTagPlaceholders.has(match) ? match : ''
-        );
+        // Remove image placeholders that survived translation output.
+        cleanedContent = cleanedContent.replace(/\[IMAGE_\d+\]/g, '');
+
+        // If some images were dropped by the model, place them back after numbered headings.
+        if (missingImages.length > 0) {
+            cleanedContent = injectImagesAfterNumberedHeadings(cleanedContent, missingImages);
+        }
 
         // ── Post-processing (programmatic, not AI) ──
         cleanedContent = cleanInvisibleChars(cleanedContent);
         cleanedContent = normalizeWhitespace(cleanedContent);
         cleanedContent = normalizeBlankLines(cleanedContent);
-        cleanedContent = toEasternArabicNumerals(cleanedContent);
-        cleanedContent = applyBidiIsolation(cleanedContent);
+        cleanedContent = normalizeHtmlEntities(cleanedContent);
+        cleanedContent = promoteNumberedItemsToH2(cleanedContent);
+        cleanedContent = toLatinNumerals(cleanedContent);
         cleanedContent = formatArabicQuotationMarks(cleanedContent);
 
         // Build quality report
@@ -602,74 +617,92 @@ export function normalizeBlankLines(text: string): string {
 }
 
 /**
- * Convert Western Arabic numerals (0-9) to Eastern Arabic numerals (٠-٩).
- * Skips numbers inside [IMAGE_N], [[TITLE_N]], URLs, and code blocks.
+ * Normalize common broken HTML entities emitted by model outputs.
  */
-export function toEasternArabicNumerals(text: string): string {
-    const EASTERN_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+export function normalizeHtmlEntities(text: string): string {
+    return text
+        .replace(/&amp;;/gi, '&')
+        .replace(/&amp;/gi, '&')
+        .replace(/&nbsp;/gi, ' ');
+}
 
-    // Protect zones that should NOT be converted
-    const protectedZones: Array<{ start: number; end: number }> = [];
+/**
+ * Promote list-like numbered lines to markdown H2 headings.
+ * Example: "10. The Shrouds" => "## 10. The Shrouds"
+ */
+export function promoteNumberedItemsToH2(text: string): string {
+    const lines = text.split('\n');
+    const output: string[] = [];
+    let inCodeBlock = false;
 
-    // Protect [TAG_N] markers
-    for (const match of text.matchAll(/\[TAG_\d+\]/g)) {
-        protectedZones.push({ start: match.index!, end: match.index! + match[0].length });
+    for (const line of lines) {
+        if (line.trimStart().startsWith('```')) {
+            inCodeBlock = !inCodeBlock;
+            output.push(line);
+            continue;
+        }
+
+        if (inCodeBlock || /^\s*#{1,6}\s/.test(line)) {
+            output.push(line);
+            continue;
+        }
+
+        const match = line.match(/^\s*(?:\*\*)?([0-9\u0660-\u0669]+[.)]\s+.+?)(?:\*\*)?\s*$/u);
+        if (match) {
+            output.push(`## ${match[1].trim()}`);
+            continue;
+        }
+
+        output.push(line);
     }
 
-    // Protect [IMAGE_N] markers (legacy support if still used, though extractTags covers it)
-    for (const match of text.matchAll(/\[IMAGE_\d+\]/g)) {
-        protectedZones.push({ start: match.index!, end: match.index! + match[0].length });
+    return output.join('\n');
+}
+
+/**
+ * Convert Eastern Arabic numerals (٠-٩) to Latin numerals (0-9).
+ */
+export function toLatinNumerals(text: string): string {
+    return text.replace(/[٠-٩]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)));
+}
+
+/**
+ * Insert missing images back into content in sequence after numbered headings.
+ * If headings are fewer than missing images, append the remainder at the end.
+ */
+export function injectImagesAfterNumberedHeadings(content: string, missingImages: string[]): string {
+    if (missingImages.length === 0) {
+        return content;
     }
 
-    // Protect [[TITLE_N]] markers
-    for (const match of text.matchAll(/\[\[TITLE_\d+\]\]/g)) {
-        protectedZones.push({ start: match.index!, end: match.index! + match[0].length });
-    }
+    const lines = content.split('\n');
+    const output: string[] = [];
+    let imageIndex = 0;
+    const headingRegex = /^\s*(?:#{1,6}\s*)?[0-9\u0660-\u0669]+[.)]\s+/u;
 
-    // Protect URLs (http/https)
-    for (const match of text.matchAll(/https?:\/\/[^\s)>\]]+/g)) {
-        protectedZones.push({ start: match.index!, end: match.index! + match[0].length });
-    }
+    for (const line of lines) {
+        output.push(line);
 
-    // Protect inline code (backticks)
-    for (const match of text.matchAll(/`[^`]+`/g)) {
-        protectedZones.push({ start: match.index!, end: match.index! + match[0].length });
-    }
+        if (imageIndex >= missingImages.length) {
+            continue;
+        }
 
-    // Protect HTML/JSX tags
-    for (const match of text.matchAll(/<[^>]+>/g)) {
-        protectedZones.push({ start: match.index!, end: match.index! + match[0].length });
-    }
-
-    // Protect Markdown links/images destination: [text](URL)
-    // We catch the (URL) part
-    for (const match of text.matchAll(/\]\(([^)]+)\)/g)) {
-        // match.index is the start of the whole match (the ']' character)
-        // We want to protect from match.index + 2 (the start of the URL) to match.index + 1 + match[0].length - 1
-        // Actually, just protecting the whole '](' + URL + ')' is safer.
-        protectedZones.push({ start: match.index!, end: match.index! + match[0].length });
-    }
-
-    // Protect code blocks
-    for (const match of text.matchAll(/```[\s\S]*?```/g)) {
-        protectedZones.push({ start: match.index!, end: match.index! + match[0].length });
-    }
-
-    function isProtected(index: number): boolean {
-        return protectedZones.some(z => index >= z.start && index < z.end);
-    }
-
-    let result = '';
-    for (let i = 0; i < text.length; i++) {
-        const code = text.charCodeAt(i);
-        if (code >= 48 && code <= 57 && !isProtected(i)) {
-            result += EASTERN_DIGITS[code - 48];
-        } else {
-            result += text[i];
+        if (headingRegex.test(line)) {
+            output.push('');
+            output.push(missingImages[imageIndex]);
+            output.push('');
+            imageIndex += 1;
         }
     }
 
-    return result;
+    while (imageIndex < missingImages.length) {
+        output.push('');
+        output.push(missingImages[imageIndex]);
+        output.push('');
+        imageIndex += 1;
+    }
+
+    return normalizeBlankLines(output.join('\n'));
 }
 
 /**

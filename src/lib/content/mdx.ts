@@ -7,7 +7,7 @@ import { tokenizeMdx } from '../mdx/tokenizer';
 const CONTENT_DIR = path.join(process.cwd(), 'content');
 const VOID_TAGS = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'];
 
-function sanitizeForMdx(content: string): string {
+export function sanitizeForMdx(content: string): string {
     // 0. Tokenize content to escape = and ; outside of code/tags
     let normalized = tokenizeMdx(content);
 
@@ -22,7 +22,28 @@ function sanitizeForMdx(content: string): string {
         // 1. Remove WordPress pagination links
         $('.page-links, [classname*="page-links"], [className*="page-links"]').remove();
 
-        // 2. Remove empty or garbage-only paragraphs
+        // 2. Unwrap noisy WordPress wrappers to keep clean MDX structure
+        $('.entry-content, [classname*="entry-content"], [className*="entry-content"]').each((_, el) => {
+            const node = $(el);
+            node.replaceWith(node.html() || '');
+        });
+
+        // 3. Remove empty inline spans
+        $('span').each(function () {
+            const el = $(this);
+            const text = el
+                .text()
+                .replace(/&nbsp;/gi, '')
+                .replace(/[;&]/g, '')
+                .replace(/[\u00a0\u200b-\u200d\u2066-\u2069]/g, '')
+                .replace(/\s+/g, '')
+                .trim();
+            if (!text && el.children().length === 0) {
+                el.remove();
+            }
+        });
+
+        // 4. Remove empty or garbage-only paragraphs/divs
         $('p').each(function () {
             const el = $(this);
             // Do not remove if it contains media
@@ -40,11 +61,16 @@ function sanitizeForMdx(content: string): string {
                 .trim();
 
             if (textContent === '') {
-                // Check if it's literally just HTML entities that .text() might not decode fully if malformed
-                const rawHtml = (el.html() || '').replace(/&[a-zA-Z]+;/g, '').replace(/[&;]/g, '').replace(/nbsp/g, '').trim();
-                if (!rawHtml.match(/[a-zA-Z0-9\u0600-\u06FF]/)) {
-                    el.remove();
-                }
+                el.remove();
+            }
+        });
+
+        $('div').each(function () {
+            const el = $(this);
+            if (el.find('img, iframe, video, audio, picture, source, h1, h2, h3, h4, h5, h6, ul, ol, blockquote').length > 0) return;
+            const text = el.text().replace(/[\u00a0\u200b-\u200d\u2066-\u2069]/g, '').trim();
+            if (!text) {
+                el.remove();
             }
         });
 
@@ -55,6 +81,7 @@ function sanitizeForMdx(content: string): string {
 
     // Normalize common HTML attributes to React/JSX prop casing.
     normalized = normalized
+        .replace(/\sclassname=/gi, ' className=')
         .replace(/\sclass=/gi, ' className=')
         .replace(/\sfetchpriority=/gi, ' fetchPriority=')
         .replace(/\ssrcset=/gi, ' srcSet=')
@@ -75,6 +102,9 @@ function sanitizeForMdx(content: string): string {
             }
             return `<${tag}${attrs} />`;
         });
+
+        const closePattern = new RegExp(`</${tag}\\s*>`, 'gi');
+        normalized = normalized.replace(closePattern, '');
     }
 
     return normalized;
