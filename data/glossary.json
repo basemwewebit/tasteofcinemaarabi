@@ -1,41 +1,259 @@
 {
-  "version": 1,
-  "updated_at": "2026-02-28T00:00:00Z",
+  "version": 2,
+  "updated_at": "2026-03-01T02:27:41.532Z",
   "entries": [
-    { "en": "film noir", "ar": "الفيلم الأسود", "context": "genre", "approved": true, "source": "manual" },
-    { "en": "neo-noir", "ar": "النوار الجديد", "context": "genre", "approved": true, "source": "manual" },
-    { "en": "mise-en-scène", "ar": "التكوين البصري", "context": "technique", "approved": true, "source": "manual" },
-    { "en": "montage", "ar": "المونتاج", "context": "technique", "approved": true, "source": "manual" },
-    { "en": "auteur", "ar": "المخرج المؤلف", "context": "role", "approved": true, "source": "manual" },
-    { "en": "nouvelle vague", "ar": "الموجة الجديدة", "context": "movement", "approved": true, "source": "manual" },
-    { "en": "french new wave", "ar": "الموجة الفرنسية الجديدة", "context": "movement", "approved": true, "source": "manual" },
-    { "en": "italian neorealism", "ar": "الواقعية الإيطالية الجديدة", "context": "movement", "approved": true, "source": "manual" },
-    { "en": "german expressionism", "ar": "التعبيرية الألمانية", "context": "movement", "approved": true, "source": "manual" },
-    { "en": "cinema vérité", "ar": "سينما الحقيقة", "context": "movement", "approved": true, "source": "manual" },
-    { "en": "dogme 95", "ar": "حركة دوغما ٩٥", "context": "movement", "approved": true, "source": "manual" },
-    { "en": "arthouse", "ar": "السينما الفنية", "context": "genre", "approved": true, "source": "manual" },
-    { "en": "blockbuster", "ar": "فيلم جماهيري ضخم", "context": "industry", "approved": true, "source": "manual" },
-    { "en": "indie film", "ar": "فيلم مستقل", "context": "industry", "approved": true, "source": "manual" },
-    { "en": "cinematography", "ar": "التصوير السينمائي", "context": "craft", "approved": true, "source": "manual" },
-    { "en": "screenplay", "ar": "السيناريو", "context": "craft", "approved": true, "source": "manual" },
-    { "en": "screenwriter", "ar": "كاتب السيناريو", "context": "role", "approved": true, "source": "manual" },
-    { "en": "director of photography", "ar": "مدير التصوير", "context": "role", "approved": true, "source": "manual" },
-    { "en": "close-up", "ar": "لقطة قريبة", "context": "shot", "approved": true, "source": "manual" },
-    { "en": "long shot", "ar": "لقطة بعيدة", "context": "shot", "approved": true, "source": "manual" },
-    { "en": "tracking shot", "ar": "لقطة متتبعة", "context": "shot", "approved": true, "source": "manual" },
-    { "en": "panning shot", "ar": "لقطة بانورامية", "context": "shot", "approved": true, "source": "manual" },
-    { "en": "film score", "ar": "الموسيقى التصويرية", "context": "craft", "approved": true, "source": "manual" },
-    { "en": "sound design", "ar": "التصميم الصوتي", "context": "craft", "approved": true, "source": "manual" },
-    { "en": "diegetic sound", "ar": "الصوت الداخلي", "context": "technique", "approved": true, "source": "manual" },
-    { "en": "macguffin", "ar": "الماكغافن", "context": "technique", "approved": true, "source": "manual" },
-    { "en": "box office", "ar": "شباك التذاكر", "context": "industry", "approved": true, "source": "manual" },
-    { "en": "character arc", "ar": "تطوّر الشخصية", "context": "structure", "approved": true, "source": "manual" },
-    { "en": "plot twist", "ar": "انعطافة درامية", "context": "structure", "approved": true, "source": "manual" },
-    { "en": "cliffhanger", "ar": "نهاية مُعلّقة", "context": "structure", "approved": true, "source": "manual" },
-    { "en": "ensemble cast", "ar": "طاقم تمثيلي جماعي", "context": "casting", "approved": true, "source": "manual" },
-    { "en": "method acting", "ar": "التمثيل المنهجي", "context": "technique", "approved": true, "source": "manual" },
-    { "en": "slapstick", "ar": "الكوميديا الصاخبة", "context": "genre", "approved": true, "source": "manual" },
-    { "en": "whodunit", "ar": "لغز الجريمة", "context": "genre", "approved": true, "source": "manual" },
-    { "en": "criterion collection", "ar": "مجموعة كرايتيريون", "context": "classification", "approved": true, "source": "manual" }
+    {
+      "en": "film noir",
+      "ar": "الفيلم الأسود",
+      "context": "genre",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "neo-noir",
+      "ar": "النوار الجديد",
+      "context": "genre",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "mise-en-scène",
+      "ar": "التكوين البصري",
+      "context": "technique",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "montage",
+      "ar": "المونتاج",
+      "context": "technique",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "auteur",
+      "ar": "المخرج المؤلف",
+      "context": "role",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "nouvelle vague",
+      "ar": "الموجة الجديدة",
+      "context": "movement",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "french new wave",
+      "ar": "الموجة الفرنسية الجديدة",
+      "context": "movement",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "italian neorealism",
+      "ar": "الواقعية الإيطالية الجديدة",
+      "context": "movement",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "german expressionism",
+      "ar": "التعبيرية الألمانية",
+      "context": "movement",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "cinema vérité",
+      "ar": "سينما الحقيقة",
+      "context": "movement",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "dogme 95",
+      "ar": "حركة دوغما ٩٥",
+      "context": "movement",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "arthouse",
+      "ar": "السينما الفنية",
+      "context": "genre",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "blockbuster",
+      "ar": "فيلم جماهيري ضخم",
+      "context": "industry",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "indie film",
+      "ar": "فيلم مستقل",
+      "context": "industry",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "cinematography",
+      "ar": "التصوير السينمائي",
+      "context": "craft",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "screenplay",
+      "ar": "السيناريو",
+      "context": "craft",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "screenwriter",
+      "ar": "كاتب السيناريو",
+      "context": "role",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "director of photography",
+      "ar": "مدير التصوير",
+      "context": "role",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "close-up",
+      "ar": "لقطة قريبة",
+      "context": "shot",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "long shot",
+      "ar": "لقطة بعيدة",
+      "context": "shot",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "tracking shot",
+      "ar": "لقطة متتبعة",
+      "context": "shot",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "panning shot",
+      "ar": "لقطة بانورامية",
+      "context": "shot",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "film score",
+      "ar": "الموسيقى التصويرية",
+      "context": "craft",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "sound design",
+      "ar": "التصميم الصوتي",
+      "context": "craft",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "diegetic sound",
+      "ar": "الصوت الداخلي",
+      "context": "technique",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "macguffin",
+      "ar": "الماكغافن",
+      "context": "technique",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "box office",
+      "ar": "شباك التذاكر",
+      "context": "industry",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "character arc",
+      "ar": "تطوّر الشخصية",
+      "context": "structure",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "plot twist",
+      "ar": "انعطافة درامية",
+      "context": "structure",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "cliffhanger",
+      "ar": "نهاية مُعلّقة",
+      "context": "structure",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "ensemble cast",
+      "ar": "طاقم تمثيلي جماعي",
+      "context": "casting",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "method acting",
+      "ar": "التمثيل المنهجي",
+      "context": "technique",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "slapstick",
+      "ar": "الكوميديا الصاخبة",
+      "context": "genre",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "whodunit",
+      "ar": "لغز الجريمة",
+      "context": "genre",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "criterion collection",
+      "ar": "مجموعة كرايتيريون",
+      "context": "classification",
+      "approved": true,
+      "source": "manual"
+    },
+    {
+      "en": "poliziottechi",
+      "ar": "بوليزيوتيسكي",
+      "context": "genre",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    }
   ]
 }
