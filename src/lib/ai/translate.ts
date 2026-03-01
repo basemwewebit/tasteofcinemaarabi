@@ -1,10 +1,11 @@
 // src/lib/ai/translate.ts
 import OpenAI from 'openai';
-import { TranslateRequest, TranslateResponse, TranslationQualityReport, PhaseReport, ReviewPhaseReport, ProofreadPhaseReport } from '@/types/api';
+import { TranslateRequest, TranslateResponse, TranslationQualityReport, PhaseReport, ReviewPhaseReport, ProofreadPhaseReport, PolishPhaseReport } from '@/types/api';
 import { loadGlossary, filterRelevantTerms, extractDiscoveredTerms, addDiscoveredTerms, GlossaryEntry } from './glossary';
 import { buildPhase1SystemMessage, buildPhase1UserMessage, Phase1Output } from './prompts/phase1-translate';
 import { buildPhase2SystemMessage, buildPhase2UserMessage, BannedPattern, Phase2Output, Phase2CorrectionItem } from './prompts/phase2-review';
 import { buildPhase3SystemMessage, buildPhase3UserMessage, Phase3Output } from './prompts/phase3-proofread';
+import { buildPhase4SystemMessage, buildPhase4UserMessage, Phase4Output } from './prompts/phase4-polish';
 import fs from 'fs';
 import path from 'path';
 
@@ -40,6 +41,20 @@ const MAX_TRANSLATION_RETRIES = 3;
 const PHASE_RETRY_LIMIT = 1; // Retry once for phases 2 & 3
 const CHUNK_THRESHOLD = 30000;
 const BANNED_PATTERNS_PATH = path.join(process.cwd(), 'data', 'banned-patterns.json');
+
+export function loadProtectedTerms(): string[] {
+    try {
+        const termsPath = path.join(process.cwd(), 'data', 'protected-terms.json');
+        if (fs.existsSync(termsPath)) {
+            const raw = fs.readFileSync(termsPath, 'utf-8');
+            const data = JSON.parse(raw);
+            return Array.isArray(data.terms) ? data.terms : [];
+        }
+    } catch (e) {
+        console.warn('Failed to load protected terms:', e);
+    }
+    return [];
+}
 
 /**
  * Replace every HTML/JSX tag with a simple [TAG_N] text marker.
@@ -173,6 +188,8 @@ export async function translateArticle(req: TranslateRequest): Promise<Translate
         console.warn('Failed to load banned patterns, proceeding without:', e);
     }
 
+    const protectedTerms = loadProtectedTerms();
+
     // Split into chunks if content is too long
     const chunks = splitIntoChunks(content, CHUNK_THRESHOLD);
     const totalChunks = chunks.length;
@@ -185,6 +202,7 @@ export async function translateArticle(req: TranslateRequest): Promise<Translate
     const phase1Metrics: PhaseReport = { status: 'success', duration_ms: 0, tokens_in: 0, tokens_out: 0, retries: 0 };
     const phase2Metrics: ReviewPhaseReport = { status: 'success', duration_ms: 0, tokens_in: 0, tokens_out: 0, retries: 0, corrections: 0, by_type: {}, new_terms: 0 };
     const phase3Metrics: ProofreadPhaseReport = { status: 'success', duration_ms: 0, tokens_in: 0, tokens_out: 0, retries: 0, polishes: 0, by_type: {} };
+    const phase4Metrics: PolishPhaseReport = { status: req.polishEnabled === false ? 'skipped' : 'success', duration_ms: 0, tokens_in: 0, tokens_out: 0, retries: 0, refinements: 0, by_type: {} };
 
     let aggregatedTitle: Phase1Output | null = null;
     const translatedChunks: string[] = [];
@@ -345,6 +363,40 @@ export async function translateArticle(req: TranslateRequest): Promise<Translate
             }
             phase3Metrics.duration_ms += Date.now() - phase3Start;
 
+            // ── Phase 4: Polish (Style Refinement) ──
+            const phase4Start = Date.now();
+            if (req.polishEnabled !== false && phase2Metrics.status !== 'failed' && phase3Metrics.status !== 'failed') {
+                try {
+                    const phase4Output = await runPhaseWithRetry<Phase4Output>(
+                        ai, model, 0.4,
+                        buildPhase4SystemMessage(protectedTerms),
+                        buildPhase4UserMessage({ arabicText: currentArabicText }),
+                        PHASE_RETRY_LIMIT,
+                    );
+
+                    phase4Metrics.tokens_in += phase4Output.tokens_in;
+                    phase4Metrics.tokens_out += phase4Output.tokens_out;
+                    phase4Metrics.retries += phase4Output.retries;
+
+                    if (phase4Output.data) {
+                        currentArabicText = phase4Output.data.polished_text || currentArabicText;
+
+                        const refinements = phase4Output.data.refinements || [];
+                        phase4Metrics.refinements += refinements.length;
+                        for (const r of refinements) {
+                            phase4Metrics.by_type[r.type] = (phase4Metrics.by_type[r.type] || 0) + 1;
+                        }
+                    }
+                } catch (e) {
+                    console.error('Phase 4 polish failed, using Phase 3 output:', e);
+                    phase4Metrics.status = 'failed';
+                }
+            } else if (req.polishEnabled !== false && (phase2Metrics.status === 'failed' || phase3Metrics.status === 'failed')) {
+                // If polish is not disabled but previous phase failed, skip
+                phase4Metrics.status = 'skipped';
+            }
+            phase4Metrics.duration_ms += Date.now() - phase4Start;
+
             translatedChunks.push(currentArabicText);
         }
 
@@ -374,6 +426,9 @@ export async function translateArticle(req: TranslateRequest): Promise<Translate
         );
 
         // ── Post-processing (programmatic, not AI) ──
+        cleanedContent = cleanInvisibleChars(cleanedContent);
+        cleanedContent = normalizeWhitespace(cleanedContent);
+        cleanedContent = normalizeBlankLines(cleanedContent);
         cleanedContent = toEasternArabicNumerals(cleanedContent);
         cleanedContent = applyBidiIsolation(cleanedContent);
         cleanedContent = formatArabicQuotationMarks(cleanedContent);
@@ -381,7 +436,7 @@ export async function translateArticle(req: TranslateRequest): Promise<Translate
         // Build quality report
         const qualityReport = buildQualityReport(
             model, totalChunks, pipelineStart,
-            phase1Metrics, phase2Metrics, phase3Metrics,
+            phase1Metrics, phase2Metrics, phase3Metrics, phase4Metrics,
             allNewTerms,
         );
 
@@ -515,6 +570,38 @@ function mergeTinyChunks(chunks: string[], threshold: number): string[] {
 // ── Post-processing ──
 
 /**
+ * Removes hidden characters correctly documented from audit:
+ * \u200b (Zero Width Space), \u200c (Zero Width Non-Joiner),
+ * \u200d (Zero Width Joiner), \u00ad (Soft Hyphen).
+ * Replaces \u00a0 (Non-Breaking Space) with regular space.
+ * Strips accumulated \u2068 \u2069 (FSI/PDI) before bidi isolation re-adds them.
+ * Also removes noise sequences like `;;;;;;;;;`
+ */
+export function cleanInvisibleChars(text: string): string {
+    return text
+        .replace(/[\u200b\u200c\u200d\u00ad\u2068\u2069]/g, '')
+        .replace(/;{3,}/g, '') // remove repeated semicolons
+        .replace(/\u00a0/g, ' ');
+}
+
+/**
+ * Collapses multiple consecutive horizontal spaces to a single space.
+ * Normalizes line endings to \n.
+ */
+export function normalizeWhitespace(text: string): string {
+    return text
+        .replace(/\r\n/g, '\n')
+        .replace(/[ \t]+/g, ' ');
+}
+
+/**
+ * Reduces 3 or more consecutive blank lines to exactly 2 max.
+ */
+export function normalizeBlankLines(text: string): string {
+    return text.replace(/\n{3,}/g, '\n\n');
+}
+
+/**
  * Convert Western Arabic numerals (0-9) to Eastern Arabic numerals (٠-٩).
  * Skips numbers inside [IMAGE_N], [[TITLE_N]], URLs, and code blocks.
  */
@@ -610,15 +697,20 @@ export function applyBidiIsolation(text: string): string {
         return protectedZones.some(z => index >= z.start && index < z.end);
     }
 
-    // Match sequences of Latin characters that are at least 2 chars long
-    // only if they are NOT inside a protected zone.
+    // Match entire Latin phrases (including spaces, numbers, punctuation)
+    // We replace characters that form an English movie title or phrase.
+    // The previous regex only captured single words well and failed on spaces between words.
     return text.replace(
-        /(?<=[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\s])([A-Za-z][A-Za-z0-9\s\-'.:,&*()\u00C0-\u024F]+[A-Za-z0-9)])(?=[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\s.,!?،؛:»«]|$)/g,
+        /([A-Za-z0-9][A-Za-z0-9\s\-'.:,&*()\u00C0-\u024F]+[A-Za-z0-9)])/g,
         (match, p1, offset) => {
             if (isInsideProtected(offset)) {
                 return match;
             }
-            return `${FSI}${match}${PDI}`;
+            // Add FSI/PDI only if it contains letters (to avoid matching pure numbers)
+            if (/[A-Za-z]/.test(match)) {
+                return `${FSI}${match}${PDI}`;
+            }
+            return match;
         }
     );
 }
@@ -659,6 +751,9 @@ export function formatArabicQuotationMarks(text: string): string {
 
     // Convert curly quotes (these are typically only in text)
     result = result.replace(/\u201C([^\u201D]*)\u201D/g, '«$1»');
+
+    // Strip smart single quotes if they appeard during translation
+    result = result.replace(/[\u2018\u2019]/g, '');
 
     return result;
 }
@@ -734,6 +829,7 @@ export function buildQualityReport(
     phase1: PhaseReport,
     phase2: ReviewPhaseReport,
     phase3: ProofreadPhaseReport,
+    phase4: PolishPhaseReport,
     newTerms: string[],
 ): TranslationQualityReport {
     const totalDuration = Date.now() - pipelineStart;
@@ -747,12 +843,13 @@ export function buildQualityReport(
             translate: phase1,
             review: phase2,
             proofread: phase3,
+            polish: phase4,
         },
         totals: {
             duration_ms: totalDuration,
-            tokens_in: phase1.tokens_in + phase2.tokens_in + phase3.tokens_in,
-            tokens_out: phase1.tokens_out + phase2.tokens_out + phase3.tokens_out,
-            corrections: phase2.corrections + phase3.polishes,
+            tokens_in: phase1.tokens_in + phase2.tokens_in + phase3.tokens_in + phase4.tokens_in,
+            tokens_out: phase1.tokens_out + phase2.tokens_out + phase3.tokens_out + phase4.tokens_out,
+            corrections: phase2.corrections + phase3.polishes + phase4.refinements,
             new_terms: newTerms,
         },
     };

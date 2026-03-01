@@ -25,6 +25,7 @@ export interface TranslateRequest {
     content: string; // The scraped HTML or raw Text
     title: string; // Original english title
     movieTitles?: string[];   // Titles to protect from translation
+    polishEnabled?: boolean;  // Optional flag to enable/disable Phase 4 (Polish)
 }
 
 // ── Translation Quality Report types ──
@@ -50,6 +51,16 @@ export interface ProofreadPhaseReport extends PhaseReport {
     by_type: Record<string, number>;
 }
 
+export interface Phase4RefinementItem {
+    type: 'style' | 'flow' | 'vocabulary' | 'other';
+    description: string;
+}
+
+export interface PolishPhaseReport extends PhaseReport {
+    refinements: number;
+    by_type: Record<string, number>;
+}
+
 export interface TranslationQualityReport {
     v: number;
     ts: string;
@@ -59,6 +70,7 @@ export interface TranslationQualityReport {
         translate: PhaseReport;
         review: ReviewPhaseReport;
         proofread: ProofreadPhaseReport;
+        polish?: PolishPhaseReport; // Optional phase 4 output
     };
     totals: {
         duration_ms: number;

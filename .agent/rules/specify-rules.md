@@ -11,6 +11,8 @@ Auto-generated from all feature plans. Last updated: 2026-02-28
 - SQLite (`data/cinema.db`) with schema in `data/schema.sql` (006-db-deploy-scraper-filters)
 - TypeScript / Node + `next-mdx-remote`, `next` (001-fix-mdx-compile-error)
 - Content files (Markdown/MDX) (001-fix-mdx-compile-error)
+- TypeScript 5.x (strict) + Python 3.12 + OpenAI SDK (OpenRouter), Next.js App Router, fs/path (Node.js stdlib) (008-translation-polish)
+- ملفات محلية (JSON/MDX) — مجلد `scraped/` للمحتوى المسحوب (008-translation-polish)
 
 - TypeScript (strict) + Next.js 15 (App Router), `better-sqlite3`, `cheerio`, `openai`, `next-mdx-remote`, `fuse.js`, `lucide-react` (001-cinema-cms)
 
@@ -30,9 +32,9 @@ npm test && npm run lint
 TypeScript (strict): Follow standard conventions
 
 ## Recent Changes
+- 008-translation-polish: Added TypeScript 5.x (strict) + Python 3.12 + OpenAI SDK (OpenRouter), Next.js App Router, fs/path (Node.js stdlib)
 - 001-fix-mdx-compile-error: Added TypeScript / Node + `next-mdx-remote`, `next`
 - 006-db-deploy-scraper-filters: Added TypeScript 5.9 (Node 20, Next.js 15.5) for DB commands; Python 3.12 (Pydantic) for scraper + better-sqlite3 (DB), argparse + lxml + Pydantic (scraper)
-- 001-fix-security-scan: Added TypeScript (Next.js Application) & Python 3.x (Agent Scripts) + Next.js App Router (React), Database (SQLite assumed), DOMPurify (for XSS fix)
 
 
 <!-- MANUAL ADDITIONS START -->

@@ -1,6 +1,6 @@
 {
-  "version": 2,
-  "updated_at": "2026-03-01T02:27:41.532Z",
+  "version": 4,
+  "updated_at": "2026-03-01T06:39:07.420Z",
   "entries": [
     {
       "en": "film noir",
@@ -251,6 +251,1022 @@
       "en": "poliziottechi",
       "ar": "بوليزيوتيسكي",
       "context": "genre",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "cat-and-mouse crime thriller",
+      "ar": "فيلم إثارة وجريمة يتسم بالمطاردة بين القط والفأر",
+      "context": "genre",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "undercover cop",
+      "ar": "شرطي سري",
+      "context": "character role",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "triads",
+      "ar": "عصابات الترياد",
+      "context": "criminal organization",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "understated yet deeply resonant acting",
+      "ar": "تمثيل متحفظ ولكنه عميق التأثير",
+      "context": "acting style",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "taut crime story",
+      "ar": "قصة جريمة مشوقة",
+      "context": "genre",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "sociopolitical dimensions",
+      "ar": "الأبعاد الاجتماعية والسياسية",
+      "context": "theme",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "benchmark for european crime cinema",
+      "ar": "معيار لسينما الجريمة الأوروبية",
+      "context": "cinematic standard",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "tour de force performance",
+      "ar": "أداء استثنائي",
+      "context": "acting performance",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "labyrinth of revenge",
+      "ar": "متاهة من الانتقام",
+      "context": "narrative element",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "visceral experience",
+      "ar": "تجربة حسية",
+      "context": "audience experience",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "cinematic commitment",
+      "ar": "التزام سينمائي",
+      "context": "filmmaking",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "study of sexual addiction",
+      "ar": "دراسة إدمان الجنس",
+      "context": "theme",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "unflinching performance",
+      "ar": "أداء لا يتردد",
+      "context": "acting performance",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "harrowing depiction",
+      "ar": "تصوير مروع",
+      "context": "filmmaking",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "psychological realism",
+      "ar": "واقعية نفسية",
+      "context": "filmmaking",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "historical reenactment",
+      "ar": "إعادة تمثيل تاريخي",
+      "context": "genre",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "study in menace",
+      "ar": "دراسة في التهديد",
+      "context": "character analysis",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "immaculate precision",
+      "ar": "دقة متناهية",
+      "context": "acting",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "breakout performance",
+      "ar": "أداء افتتاحي",
+      "context": "acting",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "portrayal of villainy",
+      "ar": "تصوير الشر",
+      "context": "characterization",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "existential drama",
+      "ar": "دراما وجودية",
+      "context": "genre",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "dramatic convention",
+      "ar": "اتفاق درامي",
+      "context": "narrative",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "dislocation",
+      "ar": "شعور بالضياع",
+      "context": "emotion",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "communal paranoia",
+      "ar": "بارانويا مجتمعية",
+      "context": "theme",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "societal cruelty",
+      "ar": "قسوة مجتمعية",
+      "context": "theme",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "personal integrity",
+      "ar": "نزاهة شخصية",
+      "context": "theme",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "masterful performance",
+      "ar": "أداء متقن",
+      "context": "acting",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "music teacher",
+      "ar": "مدرس موسيقى",
+      "context": "profession",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "teacher-student dynamic",
+      "ar": "ديناميكية المعلم والطالب",
+      "context": "relationship",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "gravitas",
+      "ar": "وقار",
+      "context": "acting quality",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "moral crises",
+      "ar": "أزمات أخلاقية",
+      "context": "theme",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "resilience",
+      "ar": "قوة",
+      "context": "character trait",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "black humour",
+      "ar": "فكاهة سوداء",
+      "context": "genre element",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "moral meditation",
+      "ar": "تأمل أخلاقي",
+      "context": "theme",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "intellectual hunger",
+      "ar": "جوع فكري",
+      "context": "character motivation",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "self-actualisation",
+      "ar": "تحقيق الذات",
+      "context": "psychology",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "internal torment",
+      "ar": "عذاب داخلي",
+      "context": "emotion",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "political struggle",
+      "ar": "نضال سياسي",
+      "context": "theme",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "cinematic and literary",
+      "ar": "سينمائي وأدبي",
+      "context": "style",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "raw emotion",
+      "ar": "عاطفة خام",
+      "context": "emotion",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "intellectual curiosity",
+      "ar": "فضول فكري",
+      "context": "character trait",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "morally blank",
+      "ar": "خالٍ من الأخلاق",
+      "context": "character trait",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "antiheroes",
+      "ar": "أبطال مضادون",
+      "context": "character type",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "murky morality",
+      "ar": "أخلاق غامضة",
+      "context": "theme",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "media ethics",
+      "ar": "أخلاقيات الإعلام",
+      "context": "theme",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "human ruthlessness",
+      "ar": "قسوة بشرية",
+      "context": "theme",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "screen presence",
+      "ar": "حضور على الشاشة",
+      "context": "acting",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "mismatched pair",
+      "ar": "زوج غير متطابق",
+      "context": "relationship",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "depravity",
+      "ar": "انحطاط",
+      "context": "theme",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "biopic",
+      "ar": "سيرة ذاتية",
+      "context": "genre",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "obsessive, meticulous performance",
+      "ar": "أداء مهووس ودقيق",
+      "context": "acting",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "eccentricity",
+      "ar": "غرابة",
+      "context": "character trait",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "descent into mental illness",
+      "ar": "انحدار إلى المرض العقلي",
+      "context": "character arc",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "technical mastery",
+      "ar": "إتقان فني",
+      "context": "skill",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "cost of greatness",
+      "ar": "ثمن العظمة",
+      "context": "theme",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "underrated works",
+      "ar": "أعمال أقل تقديراً",
+      "context": "film criticism",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "meticulous, immersive, and quietly devastating",
+      "ar": "تصوير دقيق وغامر ومدمر بهدوء",
+      "context": "acting",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "underlying loneliness",
+      "ar": "وحدة كامنة",
+      "context": "emotion",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "moral compromise",
+      "ar": "مساومة أخلاقية",
+      "context": "theme",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "emotional fragility",
+      "ar": "ضعف عاطفي",
+      "context": "emotion",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "slithering presence",
+      "ar": "حضور زاحف",
+      "context": "characterization",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "showy performance",
+      "ar": "أداء استعراضي",
+      "context": "acting",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "voice, posture, and subtle facial cues",
+      "ar": "الصوت والوقفة وإشارات الوجه الدقيقة",
+      "context": "acting technique",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "transformative, anarchic, and unforgettable",
+      "ar": "تحويلي، فوضوي، ولا يُنسى",
+      "context": "acting",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "screen incarnation",
+      "ar": "تجسيد على الشاشة",
+      "context": "character portrayal",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "destabilizes gotham",
+      "ar": "يزعزع استقرار جوثام",
+      "context": "plot",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "conviction",
+      "ar": "قناعة",
+      "context": "acting",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "physicality, vocal inflection, and chaotic energy",
+      "ar": "الجسدية، التنغيم الصوتي، والطاقة الفوضوية",
+      "context": "acting technique",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "superhero cinema",
+      "ar": "سينما الأبطال الخارقين",
+      "context": "genre",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "posthumous academy award",
+      "ar": "جائزة الأوسكار بعد الوفاة",
+      "context": "award",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "unparalleled immersion",
+      "ar": "اندماج لا مثيل له",
+      "context": "acting",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "influential joker",
+      "ar": "جوكر مؤثر",
+      "context": "character impact",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "early masterpiece",
+      "ar": "تحفة مبكرة",
+      "context": "film criticism",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "determined and fallible",
+      "ar": "مصمم وضعيف",
+      "context": "character traits",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "grounded humanity",
+      "ar": "إنسانية واقعية",
+      "context": "acting",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "comedic exasperation",
+      "ar": "استياء كوميدي",
+      "context": "emotion",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "desperate seriousness",
+      "ar": "جدية يائسة",
+      "context": "emotion",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "unsolvable case",
+      "ar": "قضية لا يمكن حلها",
+      "context": "plot",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "bleak yet darkly humorous tone",
+      "ar": "نبرة قاتمة ومظلمة",
+      "context": "tone",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "fusion of genres",
+      "ar": "مزيج من الأنواع",
+      "context": "genre",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "reference point",
+      "ar": "نقطة مرجعية",
+      "context": "cinematic influence",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "renaissance",
+      "ar": "انتعاش",
+      "context": "cultural phenomenon",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "biographical epic",
+      "ar": "ملحمة سيرة ذاتية",
+      "context": "genre",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "physicist's brilliance",
+      "ar": "عبقرية الفيزيائي",
+      "context": "character trait",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "moral conflict",
+      "ar": "صراع أخلاقي",
+      "context": "theme",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "emotional restraint",
+      "ar": "كبت عاطفي",
+      "context": "character trait",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "widespread acclaim",
+      "ar": "إشادة واسعة",
+      "context": "recognition",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "memorable displays",
+      "ar": "عروض لا تُنسى",
+      "context": "acting",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "sprawling narrative",
+      "ar": "سرد واسع",
+      "context": "narrative structure",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "viscerally human",
+      "ar": "إنسانياً بشكل ملموس",
+      "context": "impact",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "deeply affecting",
+      "ar": "مؤثر بعمق",
+      "context": "impact",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "blistering crime thriller",
+      "ar": "فيلم إثارة جريمة لاذع",
+      "context": "genre",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "commanding presence",
+      "ar": "حضور مهيمن",
+      "context": "acting",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "corrupt los angeles narcotics officer",
+      "ar": "ضابط مخدرات فاسد في لوس أنجلوس",
+      "context": "character role",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "charisma and menace",
+      "ar": "كاريزما وتهديد",
+      "context": "character traits",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "control a room",
+      "ar": "السيطرة على الغرفة",
+      "context": "acting",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "tension",
+      "ar": "توتر",
+      "context": "atmosphere",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "best actor gong",
+      "ar": "جائزة أفضل ممثل",
+      "context": "award",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "defining moment",
+      "ar": "لحظة فارقة",
+      "context": "cinematic history",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "moral ambiguity",
+      "ar": "غموض أخلاقي",
+      "context": "theme",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "cop thrillers",
+      "ar": "أفلام الشرطة",
+      "context": "genre",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "stillness and precision",
+      "ar": "سكون ودقة",
+      "context": "acting",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "utterly chilling",
+      "ar": "مخيف للغاية",
+      "context": "impact",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "inevitability and moral absolutism",
+      "ar": "حتمية مطلقة وأخلاق مطلقة",
+      "context": "character traits",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "minimalist display",
+      "ar": "عرض بسيط",
+      "context": "acting",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "iconic villains",
+      "ar": "أشرار شهرة",
+      "context": "character type",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "charged with dread",
+      "ar": "مشحون بالرهبة",
+      "context": "atmosphere",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "meditation on evil itself",
+      "ar": "تأمل في الشر نفسه",
+      "context": "theme",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "mesmeric display",
+      "ar": "عرض آسر",
+      "context": "acting",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "breakout role into the big time",
+      "ar": "دور افتتاحي في عالم الشهرة",
+      "context": "career",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "magnetic performance",
+      "ar": "أداء مغناطيسي",
+      "context": "acting",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "consumed by ambition, greed, and paranoia",
+      "ar": "استهلكه الطموح والجشع والبارانويا",
+      "context": "character motivation",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "declaration of power or menace",
+      "ar": "إعلان عن القوة أو التهديد",
+      "context": "dialogue",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "saturating the screen with energy and unpredictability",
+      "ar": "يشبع حضوره الشاشة بالطاقة وعدم القدرة على التنبؤ",
+      "context": "acting",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "whispered manipulations",
+      "ar": "تلاعبات هامسة",
+      "context": "acting",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "explosive confrontations",
+      "ar": "مواجهات متفجرة",
+      "context": "plot",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "unforgettable characters",
+      "ar": "شخصيات لا تُنسى",
+      "context": "character",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "defining performance",
+      "ar": "أداء محدد",
+      "context": "acting",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "all-time great displays",
+      "ar": "أعظم العروض على الإطلاق",
+      "context": "film criticism",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "overlooked gems",
+      "ar": "جواهر منسية",
+      "context": "film criticism",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "cult classics",
+      "ar": "كلاسيكيات غامضة",
+      "context": "film genre",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "hidden corners of cinema",
+      "ar": "زوايا السينما المخفية",
+      "context": "film criticism",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "socials",
+      "ar": "حساباته الاجتماعية",
+      "context": "media",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "low-key pieces",
+      "ar": "أعمال هادئة / منخفضة الحدة",
+      "context": "genre description",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "minimalism",
+      "ar": "التبسيطية / التقليلية",
+      "context": "cinematic style",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "white-knuckle ride",
+      "ar": "رحلة تحبس الأنفاس / توتر بالغ",
+      "context": "thriller description",
+      "added_at": "2026-03-01",
+      "source": "ai_discovered",
+      "approved": false
+    },
+    {
+      "en": "unalloyed glimpse",
+      "ar": "لمحة مجردة / نظرة غير مغلفة",
+      "context": "cinematic realism",
       "added_at": "2026-03-01",
       "source": "ai_discovered",
       "approved": false

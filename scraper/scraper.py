@@ -143,6 +143,20 @@ def run_discovery_phase(
 # Extraction + image pipeline wiring (T029)
 # ---------------------------------------------------------------------------
 
+def try_load_cache(path: Path) -> dict | None:
+    import json
+    if not path.exists():
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        content = data.get("content", "")
+        if len(content) > 200:
+            return data
+    except Exception:
+        pass
+    return None
+
 
 def _make_fetcher(delay: float):
     """Return a fetcher callable that honours the configured delay."""
@@ -170,6 +184,7 @@ def process_article(
     fetcher,
     delay: float,
     verbose: bool,
+    force: bool = False,
 ) -> bool:
     """
     Extract content + download images for a single ManifestEntry.
@@ -184,28 +199,50 @@ def process_article(
     slug = entry.slug
 
     try:
-        # Fetch first page
-        first_html = fetcher(url)
-        time.sleep(delay)
+        json_path = output_dir / "articles" / f"{slug}.json"
+        article = None
 
-        # Extract article (writes JSON, updates manifest to completed)
-        article = extract_article(
-            url,
-            first_html,
-            fetcher=fetcher,
-            delay=delay,
-            output_dir=output_dir,
-            manifest=manifest,
-            slug=slug,
-        )
+        if not force:
+            cached_data = try_load_cache(json_path)
+            if cached_data is not None:
+                from models import ArticleData
+                try:
+                    article = ArticleData(**cached_data)
+                    if verbose:
+                        logging.info("  [%s] loaded from cache", slug)
+                except Exception:
+                    pass
 
-        if verbose:
-            logging.info(
-                "  [%s] pages=%d  images=%d",
-                slug,
-                article.pages_merged,
-                len(article.inline_images),
+        if article is None:
+            # Delete corrupted file if it exists
+            if json_path.exists():
+                try:
+                    json_path.unlink()
+                except OSError:
+                    pass
+
+            # Fetch first page
+            first_html = fetcher(url)
+            time.sleep(delay)
+
+            # Extract article (writes JSON, updates manifest to completed)
+            article = extract_article(
+                url,
+                first_html,
+                fetcher=fetcher,
+                delay=delay,
+                output_dir=output_dir,
+                manifest=manifest,
+                slug=slug,
             )
+
+            if verbose:
+                logging.info(
+                    "  [%s] pages=%d  images=%d",
+                    slug,
+                    article.pages_merged,
+                    len(article.inline_images),
+                )
 
         # Download images
         img_result = download_article_images(
@@ -244,6 +281,7 @@ def run_scrape_phase(
     delay: float,
     limit: int | None,
     verbose: bool,
+    force: bool,
     *,
     sort_direction: str = "latest",
     year_filter: int | None = None,
@@ -296,7 +334,7 @@ def run_scrape_phase(
         if verbose:
             logging.info("[%d/%d] Scraping: %s", i, total, entry.url)
 
-        ok = process_article(entry, output_dir, manifest, fetcher, delay, verbose)
+        ok = process_article(entry, output_dir, manifest, fetcher, delay, verbose, force)
         if ok:
             success += 1
         else:
@@ -422,6 +460,7 @@ def main(argv: list[str] | None = None) -> int:
         delay=args.delay,
         limit=args.limit,
         verbose=args.verbose,
+        force=args.force,
         sort_direction=args.sort,
         year_filter=args.year,
         month_filter=args.month,
@@ -486,7 +525,7 @@ def _run_single_article_mode(args, output_dir: Path) -> int:
         entry.scraped_at = None
 
     fetcher = _make_fetcher(args.delay)
-    ok = process_article(entry, output_dir, manifest, fetcher, args.delay, args.verbose)
+    ok = process_article(entry, output_dir, manifest, fetcher, args.delay, args.verbose, args.force)
     save_manifest(manifest, output_dir)
 
     if ok:
