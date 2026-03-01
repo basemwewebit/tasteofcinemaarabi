@@ -41,62 +41,33 @@ const PHASE_RETRY_LIMIT = 1; // Retry once for phases 2 & 3
 const CHUNK_THRESHOLD = 30000;
 const BANNED_PATTERNS_PATH = path.join(process.cwd(), 'data', 'banned-patterns.json');
 
-// ── Image extraction / restoration (pre-/post-translation) ───────────────────
-// Instead of asking the AI to preserve <img> tags, we extract them before
-// sending content to the model and re-inject them afterward.
-
-interface ExtractedImage {
-    placeholder: string;
-    src: string;
-    alt: string;
-}
-
-interface ImageExtractionResult {
-    processed: string;
-    images: ExtractedImage[];
-}
-
 /**
- * Replace every <img ...> tag in HTML with a simple [IMAGE_N] text marker.
- * Returns the cleaned content and a map for restoration.
+ * Replace every HTML/JSX tag with a simple [TAG_N] text marker.
+ * This prevents the AI from mangling attributes like style, src, or class.
  */
-export function extractImages(html: string): ImageExtractionResult {
-    const images: ExtractedImage[] = [];
-    let idx = 0;
-    const processed = html.replace(/<img\b[^>]*>/gi, (tag) => {
-        idx += 1;
-        const placeholder = `[IMAGE_${idx}]`;
-        const srcMatch = tag.match(/src=["']([^"']+)["']/);
-        const altMatch = tag.match(/alt=["']([^"']*)["']/);
-        images.push({
-            placeholder,
-            src: srcMatch?.[1] ?? '',
-            alt: altMatch?.[1] ?? '',
-        });
-        return placeholder;
+export function extractTags(content: string): { processed: string; tags: string[] } {
+    const tags: string[] = [];
+    const processed = content.replace(/<[^>]+>/gi, (tag) => {
+        tags.push(tag);
+        return `[TAG_${tags.length}]`;
     });
-    return { processed, images };
+    return { processed, tags };
 }
 
 /**
- * Re-inject extracted images back into translated MDX as Markdown image syntax.
- * Handles cases where the AI drops or shifts [IMAGE_N] markers.
+ * Re-inject extracted tags back into translation.
  */
-export function restoreImages(content: string, images: ExtractedImage[]): string {
+export function restoreTags(content: string, tags: string[]): string {
     let result = content;
-    for (const { placeholder, src, alt } of images) {
-        if (!src) {
-            result = result.replace(placeholder, '');
-            continue;
-        }
-        const mdImage = `\n\n![${alt}](${src})\n\n`;
+    tags.forEach((tag, i) => {
+        const placeholder = `[TAG_${i + 1}]`;
         if (result.includes(placeholder)) {
-            result = result.replace(placeholder, mdImage);
+            result = result.replace(placeholder, tag);
         } else {
-            // Marker was dropped by AI — append at end
-            result += mdImage;
+            // If the AI dropped the tag, append it at the end to avoid data loss
+            result += `\n${tag}`;
         }
-    }
+    });
     return result;
 }
 
@@ -163,16 +134,16 @@ export async function translateArticle(req: TranslateRequest): Promise<Translate
     const safeUrl = req.url?.trim() || '';
     const rawContent = req.content || '';
 
-    // Extract images BEFORE placeholder insertion so [IMAGE_N] markers stay clean
-    const { processed: contentNoImages, images: extractedImages } = extractImages(rawContent);
+    // Extract tags BEFORE placeholder insertion so tags stay untouched by AI
+    const { processed: contentNoTags, tags: extractedTags } = extractTags(rawContent);
 
     // Insert placeholders for movie titles before translation
     const titlePlaceholders = req.movieTitles
         ? insertPlaceholders(safeTitle, req.movieTitles)
         : { processed: safeTitle, map: [] };
     const contentPlaceholders = req.movieTitles
-        ? insertPlaceholders(contentNoImages, req.movieTitles)
-        : { processed: contentNoImages, map: [] };
+        ? insertPlaceholders(contentNoTags, req.movieTitles)
+        : { processed: contentNoTags, map: [] };
 
     // Merge both maps (title + content share the same numbering from sorted titles)
     const allMaps = [...titlePlaceholders.map, ...contentPlaceholders.map];
@@ -387,13 +358,19 @@ export async function translateArticle(req: TranslateRequest): Promise<Translate
             ? restorePlaceholders(aggregatedTitle!.excerpt_ar, uniqueMap)
             : '';
 
-        // Re-inject images
-        const restoredContent = restoreImages(restoredContentRaw, extractedImages);
+        // Re-inject tags
+        const restoredContent = restoreTags(restoredContentRaw, extractedTags);
 
-        // Safety: strip any stray [[TITLE_N]] the AI may have hallucinated
-        const validPlaceholders = new Set(uniqueMap.map(m => m.placeholder));
+        // Safety: strip any stray placeholders the AI may have hallucinated
+        const validTitlePlaceholders = new Set(uniqueMap.map(m => m.placeholder));
         let cleanedContent = restoredContent.replace(/\[\[TITLE_\d+\]\]/g, (match) =>
-            validPlaceholders.has(match) ? match : ''
+            validTitlePlaceholders.has(match) ? match : ''
+        );
+
+        // Clean up halluncinated [TAG_N] placeholders
+        const validTagPlaceholders = new Set(extractedTags.map((_, i) => `[TAG_${i + 1}]`));
+        cleanedContent = cleanedContent.replace(/\[TAG_\d+\]/g, (match) =>
+            validTagPlaceholders.has(match) ? match : ''
         );
 
         // ── Post-processing (programmatic, not AI) ──
@@ -547,7 +524,12 @@ export function toEasternArabicNumerals(text: string): string {
     // Protect zones that should NOT be converted
     const protectedZones: Array<{ start: number; end: number }> = [];
 
-    // Protect [IMAGE_N] markers
+    // Protect [TAG_N] markers
+    for (const match of text.matchAll(/\[TAG_\d+\]/g)) {
+        protectedZones.push({ start: match.index!, end: match.index! + match[0].length });
+    }
+
+    // Protect [IMAGE_N] markers (legacy support if still used, though extractTags covers it)
     for (const match of text.matchAll(/\[IMAGE_\d+\]/g)) {
         protectedZones.push({ start: match.index!, end: match.index! + match[0].length });
     }
@@ -564,6 +546,20 @@ export function toEasternArabicNumerals(text: string): string {
 
     // Protect inline code (backticks)
     for (const match of text.matchAll(/`[^`]+`/g)) {
+        protectedZones.push({ start: match.index!, end: match.index! + match[0].length });
+    }
+
+    // Protect HTML/JSX tags
+    for (const match of text.matchAll(/<[^>]+>/g)) {
+        protectedZones.push({ start: match.index!, end: match.index! + match[0].length });
+    }
+
+    // Protect Markdown links/images destination: [text](URL)
+    // We catch the (URL) part
+    for (const match of text.matchAll(/\]\(([^)]+)\)/g)) {
+        // match.index is the start of the whole match (the ']' character)
+        // We want to protect from match.index + 2 (the start of the URL) to match.index + 1 + match[0].length - 1
+        // Actually, just protecting the whole '](' + URL + ')' is safer.
         protectedZones.push({ start: match.index!, end: match.index! + match[0].length });
     }
 
@@ -597,11 +593,33 @@ export function applyBidiIsolation(text: string): string {
     const FSI = '\u2068';
     const PDI = '\u2069';
 
-    // Match sequences of Latin characters (with common punctuation, numbers, and spaces between them)
-    // that are at least 2 chars long (to avoid isolating single punctuation marks)
+    // 1. Identify and protect all tags and markdown link destinations
+    const protectedZones: Array<{ start: number; end: number }> = [];
+
+    // HTML/JSX tags
+    for (const match of text.matchAll(/<[^>]+>/g)) {
+        protectedZones.push({ start: match.index!, end: match.index! + match[0].length });
+    }
+
+    // Markdown links/images: [text](URL)
+    for (const match of text.matchAll(/\]\(([^)]+)\)/g)) {
+        protectedZones.push({ start: match.index!, end: match.index! + match[0].length });
+    }
+
+    function isInsideProtected(index: number): boolean {
+        return protectedZones.some(z => index >= z.start && index < z.end);
+    }
+
+    // Match sequences of Latin characters that are at least 2 chars long
+    // only if they are NOT inside a protected zone.
     return text.replace(
         /(?<=[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\s])([A-Za-z][A-Za-z0-9\s\-'.:,&*()\u00C0-\u024F]+[A-Za-z0-9)])(?=[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\s.,!?،؛:»«]|$)/g,
-        `${FSI}$1${PDI}`,
+        (match, p1, offset) => {
+            if (isInsideProtected(offset)) {
+                return match;
+            }
+            return `${FSI}${match}${PDI}`;
+        }
     );
 }
 
@@ -610,10 +628,38 @@ export function applyBidiIsolation(text: string): string {
  * Handles: "text", "text", 'text', «text» (already correct).
  */
 export function formatArabicQuotationMarks(text: string): string {
-    // Convert curly double quotes
-    let result = text.replace(/\u201C([^\u201D]*)\u201D/g, '«$1»');
-    // Convert straight double quotes (careful not to match empty pairs)
-    result = result.replace(/"([^"]{1,500})"/g, '«$1»');
+    // 1. Identify and protect all tags so quotes INSIDE tags are never modified
+    const protectedZones: Array<{ start: number; end: number }> = [];
+    for (const match of text.matchAll(/<[^>]+>/g)) {
+        protectedZones.push({ start: match.index!, end: match.index! + match[0].length });
+    }
+
+    function isInsideTag(index: number): boolean {
+        return protectedZones.some(z => index >= z.start && index < z.end);
+    }
+
+    // Convert double quotes to guillemets, but ONLY if they are not part of a tag
+    let result = '';
+    let inDoubleQuotes = false;
+
+    for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        if (char === '"' && !isInsideTag(i)) {
+            if (!inDoubleQuotes) {
+                result += '«';
+                inDoubleQuotes = true;
+            } else {
+                result += '»';
+                inDoubleQuotes = false;
+            }
+        } else {
+            result += char;
+        }
+    }
+
+    // Convert curly quotes (these are typically only in text)
+    result = result.replace(/\u201C([^\u201D]*)\u201D/g, '«$1»');
+
     return result;
 }
 
