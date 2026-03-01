@@ -1,0 +1,18 @@
+{
+    "version": "1.0.0",
+    "terms": [
+        "Taste of Cinema",
+        "IMDb",
+        "Oscar",
+        "Cannes",
+        "BAFTA",
+        "Sundance",
+        "Palme d'Or",
+        "Golden Globe",
+        "Academy Award",
+        "Tribeca",
+        "A24",
+        "Criterion Collection"
+    ],
+    "auto_detect": true
+}

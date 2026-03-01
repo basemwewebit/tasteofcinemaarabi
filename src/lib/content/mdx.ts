@@ -18,6 +18,36 @@ function sanitizeForMdx(content: string): string {
     // We use Cheerio to safely parse and re-serialize the markup, forcing tag completion.
     try {
         const $ = cheerio.load(normalized, null, false);
+
+        // 1. Remove WordPress pagination links
+        $('.page-links, [classname*="page-links"], [className*="page-links"]').remove();
+
+        // 2. Remove empty or garbage-only paragraphs
+        $('p').each(function () {
+            const el = $(this);
+            // Do not remove if it contains media
+            if (el.find('img, iframe, video, audio, picture, source').length > 0) return;
+
+            // Check the textual content of the paragraph
+            const textContent = el.text()
+                // Strip known garbage
+                .replace(/&nbsp;/gi, '')
+                .replace(/&amp;/gi, '')
+                .replace(/[&;]/g, '') // strip & and ;
+                .replace(/(nbsp)+/gi, '')
+                .replace(/[\u00a0\u200b-\u200d\u2066-\u2069]/g, '')
+                .replace(/\s+/g, '') // remove all whitespace
+                .trim();
+
+            if (textContent === '') {
+                // Check if it's literally just HTML entities that .text() might not decode fully if malformed
+                const rawHtml = (el.html() || '').replace(/&[a-zA-Z]+;/g, '').replace(/[&;]/g, '').replace(/nbsp/g, '').trim();
+                if (!rawHtml.match(/[a-zA-Z0-9\u0600-\u06FF]/)) {
+                    el.remove();
+                }
+            }
+        });
+
         normalized = $.html();
     } catch {
         // Fallback to original if cheerio fails inexplicably

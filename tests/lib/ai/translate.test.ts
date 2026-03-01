@@ -6,9 +6,13 @@ import {
     toEasternArabicNumerals,
     applyBidiIsolation,
     formatArabicQuotationMarks,
+    cleanInvisibleChars,
+    normalizeWhitespace,
+    normalizeBlankLines,
     buildQualityReport,
 } from '@/lib/ai/translate';
-import type { PhaseReport, ReviewPhaseReport, ProofreadPhaseReport } from '@/types/api';
+import { buildPhase4SystemMessage } from '@/lib/ai/prompts/phase4-polish';
+import type { PhaseReport, ReviewPhaseReport, ProofreadPhaseReport, PolishPhaseReport } from '@/types/api';
 
 // ── Mock state ──
 // The 3-phase pipeline calls ai.chat.completions.create 3 times per chunk.
@@ -40,6 +44,13 @@ const PHASE3_RESPONSE = {
     ],
 };
 
+const PHASE4_RESPONSE = {
+    polished_text: '# ١. العراب\nتحفة فنية سينمائية خالدة ومذهلة',
+    refinements: [
+        { type: 'flow', description: 'Improved phrase flow' },
+    ],
+};
+
 function makeMockAIResponse(content: object, promptTokens = 500, completionTokens = 300) {
     return {
         choices: [{ message: { content: JSON.stringify(content) } }],
@@ -54,15 +65,18 @@ vi.mock('openai', () => {
                 completions: {
                     create: vi.fn().mockImplementation(() => {
                         createCallCount++;
-                        if (createCallCount % 3 === 1) {
+                        if (createCallCount % 4 === 1) {
                             // Phase 1 - Translate
                             return Promise.resolve(makeMockAIResponse(PHASE1_RESPONSE));
-                        } else if (createCallCount % 3 === 2) {
+                        } else if (createCallCount % 4 === 2) {
                             // Phase 2 - Review
                             return Promise.resolve(makeMockAIResponse(PHASE2_RESPONSE));
-                        } else {
+                        } else if (createCallCount % 4 === 3) {
                             // Phase 3 - Proofread
                             return Promise.resolve(makeMockAIResponse(PHASE3_RESPONSE));
+                        } else {
+                            // Phase 4 - Polish
+                            return Promise.resolve(makeMockAIResponse(PHASE4_RESPONSE));
                         }
                     }),
                 },
@@ -123,7 +137,7 @@ beforeEach(() => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe('3-Phase Translation Pipeline', () => {
-    it('should call the AI 3 times (one per phase) for a single chunk', async () => {
+    it('should call the AI 4 times (one per phase) for a single chunk', async () => {
         const result = await translateArticle({
             url: 'http://test.com',
             title: '10 Great Movies',
@@ -131,7 +145,7 @@ describe('3-Phase Translation Pipeline', () => {
         });
 
         expect(result.success).toBe(true);
-        expect(createCallCount).toBe(3);
+        expect(createCallCount).toBe(4);
     });
 
     it('should return translated title_ar from Phase 1', async () => {
@@ -153,8 +167,21 @@ describe('3-Phase Translation Pipeline', () => {
         });
 
         expect(result.success).toBe(true);
-        // Phase 3's polished_text should be used
+        // Phase 4's polished_text should be used instead of Phase 3
         expect(result.data?.content_mdx).toBeTruthy();
+    });
+
+    it('should skip Phase 4 when polishEnabled is false', async () => {
+        const result = await translateArticle({
+            url: 'http://test.com',
+            title: 'Test',
+            content: '<p>Content.</p>',
+            polishEnabled: false,
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.quality_report?.phases.polish?.status).toBe('skipped');
+        expect(createCallCount).toBe(3); // Skipped phase 4 call
     });
 
     it('should include quality_report in the response', async () => {
@@ -171,6 +198,7 @@ describe('3-Phase Translation Pipeline', () => {
         expect(result.quality_report?.phases.translate).toBeDefined();
         expect(result.quality_report?.phases.review).toBeDefined();
         expect(result.quality_report?.phases.proofread).toBeDefined();
+        expect(result.quality_report?.phases.polish).toBeDefined();
         expect(result.quality_report?.totals).toBeDefined();
     });
 
@@ -394,6 +422,75 @@ describe('formatArabicQuotationMarks', () => {
         const text = '«صحيح»';
         expect(formatArabicQuotationMarks(text)).toBe('«صحيح»');
     });
+
+    it('should strip smart single quotes', () => {
+        expect(formatArabicQuotationMarks('نص \u2018مقتبس\u2019 هنا')).toBe('نص مقتبس هنا');
+    });
+});
+
+describe('cleanInvisibleChars', () => {
+    it('should strip Zero Width characters and Soft Hyphens', () => {
+        const text = 'ab\u200bcd\u200cef\u200dgh\u00ad';
+        expect(cleanInvisibleChars(text)).toBe('abcdefgh');
+    });
+
+    it('should replace Non-Breaking Space with regular space', () => {
+        const text = 'hello\u00a0world';
+        expect(cleanInvisibleChars(text)).toBe('hello world');
+    });
+
+    it('should strip accumulated FSI and PDI characters', () => {
+        const text = 'test\u2068text\u2069';
+        expect(cleanInvisibleChars(text)).toBe('testtext');
+    });
+
+    it('should not modify normal Arabic text', () => {
+        const text = 'نص عربي سليم';
+        expect(cleanInvisibleChars(text)).toBe('نص عربي سليم');
+    });
+});
+
+describe('normalizeWhitespace', () => {
+    it('should collapse multiple horizontal spaces to one space', () => {
+        const text = 'This   is\ta\t\t\ttest';
+        expect(normalizeWhitespace(text)).toBe('This is a test');
+    });
+
+    it('should normalize Windows line endings to Unix', () => {
+        const text = 'Line 1\r\nLine 2';
+        expect(normalizeWhitespace(text)).toBe('Line 1\nLine 2');
+    });
+
+    it('should not collapse newlines into spaces', () => {
+        const text = 'Line 1\n\nLine 2';
+        expect(normalizeWhitespace(text)).toBe('Line 1\n\nLine 2');
+    });
+});
+
+describe('normalizeBlankLines', () => {
+    it('should reduce 3+ consecutive newlines to exactly 2', () => {
+        const text = 'Line 1\n\n\n\nLine 2\n\n\nLine 3';
+        expect(normalizeBlankLines(text)).toBe('Line 1\n\nLine 2\n\nLine 3');
+    });
+
+    it('should not modify 1 or 2 newlines', () => {
+        const text = 'Line 1\nLine 2\n\nLine 3';
+        expect(normalizeBlankLines(text)).toBe('Line 1\nLine 2\n\nLine 3');
+    });
+});
+
+describe('Full Post-processing Pipeline Integration', () => {
+    it('should clean all unwanted characters and format correctly', () => {
+        const input = 'فيلم\u200b "The Godfather"\u00a0رائع\u2019   \n\n\n\n10 من 10';
+        let result = cleanInvisibleChars(input);
+        result = normalizeWhitespace(result);
+        result = normalizeBlankLines(result);
+        result = toEasternArabicNumerals(result);
+        result = applyBidiIsolation(result);
+        result = formatArabicQuotationMarks(result);
+
+        expect(result).toBe('فيلم «The Godfather» رائع \n\n١٠ من ١٠');
+    });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -405,19 +502,20 @@ describe('buildQualityReport', () => {
         const phase1: PhaseReport = { status: 'success', duration_ms: 1000, tokens_in: 500, tokens_out: 300, retries: 0 };
         const phase2: ReviewPhaseReport = { status: 'success', duration_ms: 800, tokens_in: 600, tokens_out: 400, retries: 0, corrections: 2, by_type: { accuracy: 1, terminology: 1 }, new_terms: 1 };
         const phase3: ProofreadPhaseReport = { status: 'success', duration_ms: 600, tokens_in: 400, tokens_out: 200, retries: 0, polishes: 1, by_type: { flow: 1 } };
+        const phase4: PolishPhaseReport = { status: 'success', duration_ms: 500, tokens_in: 300, tokens_out: 150, retries: 0, refinements: 2, by_type: { style: 2 } };
 
         const report = buildQualityReport(
             'test-model', 1, Date.now() - 5000,
-            phase1, phase2, phase3,
+            phase1, phase2, phase3, phase4,
             ['new term'],
         );
 
         expect(report.v).toBe(1);
         expect(report.model).toBe('test-model');
         expect(report.chunks).toBe(1);
-        expect(report.totals.tokens_in).toBe(1500);
-        expect(report.totals.tokens_out).toBe(900);
-        expect(report.totals.corrections).toBe(3);
+        expect(report.totals.tokens_in).toBe(1800);
+        expect(report.totals.tokens_out).toBe(1050);
+        expect(report.totals.corrections).toBe(5);
         expect(report.totals.new_terms).toEqual(['new term']);
         expect(report.ts).toBeTruthy();
     });
@@ -426,15 +524,31 @@ describe('buildQualityReport', () => {
         const phase1: PhaseReport = { status: 'success', duration_ms: 100, tokens_in: 10, tokens_out: 10, retries: 0 };
         const phase2: ReviewPhaseReport = { status: 'failed', duration_ms: 50, tokens_in: 5, tokens_out: 5, retries: 1, corrections: 0, by_type: {}, new_terms: 0 };
         const phase3: ProofreadPhaseReport = { status: 'skipped', duration_ms: 0, tokens_in: 0, tokens_out: 0, retries: 0, polishes: 0, by_type: {} };
+        const phase4: PolishPhaseReport = { status: 'skipped', duration_ms: 0, tokens_in: 0, tokens_out: 0, retries: 0, refinements: 0, by_type: {} };
 
         const report = buildQualityReport(
             'test-model', 1, Date.now() - 1000,
-            phase1, phase2, phase3,
+            phase1, phase2, phase3, phase4,
             [],
         );
 
         expect(report.phases.translate.status).toBe('success');
         expect(report.phases.review.status).toBe('failed');
         expect(report.phases.proofread.status).toBe('skipped');
+        expect(report.phases.polish?.status).toBe('skipped');
+    });
+});
+
+describe('buildPhase4SystemMessage', () => {
+    it('should include protected terms in the prompt', () => {
+        const terms = ['Taste of Cinema', 'Oscar'];
+        const message = buildPhase4SystemMessage(terms);
+        expect(message).toContain('Taste of Cinema');
+        expect(message).toContain('Oscar');
+    });
+
+    it('should handle empty protected terms without formatting issues', () => {
+        const message = buildPhase4SystemMessage([]);
+        expect(message).not.toContain('MUST NOT be translated');
     });
 });
