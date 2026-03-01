@@ -2,12 +2,14 @@ import fs from 'fs/promises';
 import { existsSync, mkdirSync } from 'fs';
 import path from 'path';
 import * as cheerio from 'cheerio';
+import { tokenizeMdx } from '../mdx/tokenizer';
 
 const CONTENT_DIR = path.join(process.cwd(), 'content');
 const VOID_TAGS = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'];
 
 function sanitizeForMdx(content: string): string {
-    let normalized = content;
+    // 0. Tokenize content to escape = and ; outside of code/tags
+    let normalized = tokenizeMdx(content);
 
     // React expects style as object; string inline styles in imported HTML break rendering.
     normalized = normalized.replace(/\sstyle=(["']).*?\1/gi, '');
